@@ -1,0 +1,4 @@
+n_of_rpcs = 3
+streamer_treshhold = 100
+strips = 4
+vprop = 202.7

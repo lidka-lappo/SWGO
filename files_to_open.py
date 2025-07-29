@@ -43,20 +43,29 @@ def parse_date(date_input):
     except ValueError:
         raise ValueError(f"Invalid date format: {date_input}")
 
-def extract_file_datetime(filename):
-    """Extracts datetime from filename like sest{yy}{doy}{hhmmss}.mat."""
-    match = re.match(r"sest(\d{2})(\d{3})(\d{6})?\.mat$", filename)
-    if not match:
+def extract_file_datetime(filename, pattern):
+    """
+    Extracts datetime from filename using a regex pattern.
+    Pattern must extract: year (yy), day-of-year (doy), time (hhmmss)
+    Example pattern: r"sest(\d{2})(\d{3})(\d{6})\.mat"
+                     r"mi02(\d{2})(\d{3})(\d{6})\.dat"
+                     r"(\d{2})(\d{3})(\d{6})"
+    """
+    match = re.search(pattern, filename)
+    if not match or len(match.groups()) < 3:
         return None
+
     yy, doy, hms = match.groups()
     year = 2000 + int(yy)
     doy = int(doy)
     dt = datetime(year, 1, 1) + timedelta(days=doy - 1)
+
     if hms:
         dt = dt.replace(hour=int(hms[:2]), minute=int(hms[2:4]), second=int(hms[4:6]))
     return dt
 
-def list_files_in_date_range(folder, start_date=None, end_date=None):
+def list_files_in_date_range(folder, start_date=None, end_date=None, pattern=r"sest(\d{2})(\d{3})(\d{6})\.mat"):
+
     """
     Returns a list of .mat files in a folder whose timestamps (from filenames)
     fall between start_date and end_date (inclusive). Supported formats:
@@ -72,7 +81,7 @@ def list_files_in_date_range(folder, start_date=None, end_date=None):
     for file in os.listdir(folder):
         if not file.endswith('.mat') or not file.startswith('sest'):
             continue
-        file_dt = extract_file_datetime(file)
+        file_dt = extract_file_datetime(file, pattern)
         if not file_dt:
             continue
         if start_dt and file_dt < start_dt:
@@ -126,7 +135,7 @@ def list_files_in_date_range(folder, start_date=None, end_date=None):
 #         i += 1
 #         print(f"\n--- Test {i}: {desc} ---")
 #         try:
-#             files = list_files_in_date_range(test_folder, start, end)
+#             files = list_files_in_date_range(test_folder, start, end, pattern=r"sest(\d{2})(\d{3})(\d{6})\.mat")
 #             actual_count = len(files)
 #             if actual_count == expected_count:
 #                 print("TEST PASSED")
@@ -134,9 +143,9 @@ def list_files_in_date_range(folder, start_date=None, end_date=None):
 #             else:
 #                 print("TEST FAILED")
 #                 print(f"Expected {expected_count} files, found {actual_count} files.")
-#             #if actual_count > 0:
-#                 #for f in files:
-#                 #    print(f)
+#                 if actual_count > 0:
+#                     for f in files:
+#                        print(f)
 #         except Exception as e:
 #             print(f"Error: {e}")
 #     print(f"\nTotal tests: {i}, Passed: {passed}, Failed: {i - passed}")
