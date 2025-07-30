@@ -104,11 +104,16 @@ def read_data(dataset_file, verbose=False):
         print(f"Error reading {dataset_file}: {e}")
         return None
 
+########################################################
+#TEST
 
 
-data = read_data("sweap4/sest25184133338.mat", verbose=0)
-QF_RPC1 = data['QF_RPC1']
-TF_scint = data['TF_scint']
-QB_RPC2 = data['QB_RPC2']
-print("  T_F shape:", TF_scint.shape)
+# data = read_data("sweap4/sest25184133338.mat", verbose=0)
+# QF_RPC1 = data['QF_RPC1']
+# print("  Q_F RPC1 shape:", QF_RPC1.shape)
+# TF_scint = data['TF_scint']
+# print("  T_F scint shape:", TF_scint.shape)
+
+########################################################
+#TEST
 
