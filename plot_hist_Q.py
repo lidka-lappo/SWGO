@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from read_data import read_data
+#from read_data import read_data
 
-def plot_hist_Q(dataset_file, detector=1, verbose=False):
+def plot_hist_Q(data, detector=1, verbose=False):
     n_of_rpcs = 3
-    data = read_data(dataset_file, verbose)
+    
 
     if isinstance(detector, int) and 1 <= detector <= n_of_rpcs:
         # --- RPC mode ---
@@ -76,9 +76,9 @@ def plot_hist_Q(dataset_file, detector=1, verbose=False):
 
 ########################################################
 #TEST
-
-# plot_hist_Q("sweap4/sest25184133338.mat", detector=1)
-# plot_hist_Q("sweap4/sest25184133338.mat", detector="scint")
-# plot_hist_Q("sweap4/sest25184133338.mat", detector="crew")
+# data = read_data(dataset_file, verbose)
+# plot_hist_Q(data, detector=1)
+# plot_hist_Q(data, detector="scint")
+# plot_hist_Q(data, detector="crew")
 
 ########################################################
