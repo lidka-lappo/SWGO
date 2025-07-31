@@ -199,6 +199,32 @@ def plot_heatmap(XY, binsX, binsY, rpc, name):
     plt.tight_layout()
     plt.show()
 
+#########################################################
+
+
+import matplotlib.pyplot as plt
+
+def plot_efficiency_vs_time(times, all_results, label=None, title="Efficiency vs Time"):
+    times = np.array(times)
+    for rpc in [1, 2, 3]:  # Or use config
+        effs = []
+        errs = []
+        for result in all_results:
+            eff = result.get(f'efficiency_RPC{rpc}', np.nan)
+            err = result.get(f'efficiency_error_RPC{rpc}', np.nan)
+            effs.append(eff)
+            errs.append(err)
+        if not np.all(np.isnan(effs)):
+            plt.errorbar(times, effs, yerr=errs, fmt='-o', label=f'RPC{rpc}')
+    plt.xlabel("Time")
+    plt.ylabel("Efficiency")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 
 

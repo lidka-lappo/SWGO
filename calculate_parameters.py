@@ -92,18 +92,18 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
         err_ST = np.nan
 
     results = {
-        'efficiency': efficiency,
-        'efficiency_error': efficiency_error,
-        'Qmean': Qmean,
-        'Qmean_error': err_Qmean,
-        'Qmedian': Qmedian,
-        'Qmedian_error': err_Qmedian,
-        'Qmean_noST': Qmean_noST,
-        'Qmean_noST_error': err_Qmean_noST,
-        'Qmedian_noST': Qmedian_noST,
-        'Qmedian_noST_error': err_Qmedian_noST,
-        'streamer_fraction': ST,
-        'streamer_fraction_error': err_ST
+        f'efficiency_RPC{rpc}': efficiency,
+        f'efficiency_error_RPC{rpc}': efficiency_error,
+        f'Qmean_RPC{rpc}': Qmean,
+        f'Qmean_error_RPC{rpc}': err_Qmean,
+        f'Qmedian_RPC{rpc}': Qmedian,
+        f'Qmedian_error_RPC{rpc}': err_Qmedian,
+        f'Qmean_noST_RPC{rpc}': Qmean_noST,
+        f'Qmean_noST_error_RPC{rpc}': err_Qmean_noST,
+        f'Qmedian_noST_RPC{rpc}': Qmedian_noST,
+        f'Qmedian_noST_error_RPC{rpc}': err_Qmedian_noST,
+        f'streamer_fraction_RPC{rpc}': ST,
+        f'streamer_fraction_error_RPC{rpc}': err_ST
     }
 
     if verbose:

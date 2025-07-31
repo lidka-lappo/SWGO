@@ -4,12 +4,15 @@ import numpy as np
 from files_to_open import list_files_in_date_range
 
 from read_data import read_data
-from plots import plot_hist_Q, plot_hist_T, plot_diffT, plot_heatmap
+from plots import plot_hist_Q, plot_hist_T, plot_diffT, plot_heatmap, plot_efficiency_vs_time
 from filters import trigger_filter_scint, filter_rpc, find_Qmax_strips
 from filters import apply_mask, apply_rpc_offsets
 
 from load_lookUpTable import load_rpc_parameters, load_general_config
 from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_XY
+
+from datetime import datetime
+import re
 
 
 
@@ -21,14 +24,17 @@ detector =  1, 2, 3, "scint", "crew"
 
 def main():
 
-    folder = "sweap4"
+    folder = "sweap_197_199"
     start_date = None   #  "01-01-2024" or DOY or + hh:mm:ss
-    end_date = "184"      #  "01-07-2024" or DOY or + hh:mm:ss
+    #end_date = "184"      #  "01-07-2024" or DOY or + hh:mm:ss
+    end_date = None
 
     files = list_files_in_date_range(folder, start_date, end_date)
 
 
     print(f"{len(files)} file(s) found in date range {start_date} to {end_date} in folder '{folder}':")
+    all_results = []
+    times = []
 
     for file_path in files:
         print(f"\n Opening file: {file_path}")
@@ -36,6 +42,20 @@ def main():
         if data is None:
             print("Failed to read data.")
             continue
+
+        #####
+        match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})', file_path)
+        if match:
+            date_str = match.group(1)
+            time_str = match.group(2).replace("-", ":")
+            timestamp = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
+        else:
+            print("Could not extract timestamp from filename. Skipping.")
+            continue
+        times.append(timestamp)
+
+
+        #####
         
         #plot_diffT(data)
         #plot_hist_Q(data, detector='scint', verbose=False)
@@ -60,8 +80,7 @@ def main():
         n_of_rpcs = general_config["general"]["n_of_rpcs"]
         n_of_rpcs = 2
 
-        all_final_data = {}
-        all_results = {}
+        all_rpc_results = {}
 
         data_without_filters = data.copy()
         for rpc in range(1, n_of_rpcs + 1):
@@ -83,10 +102,8 @@ def main():
             
 
             results = calculate_parameters(final_data, raw_events, rpc, verbose=0)
+            all_rpc_results.update(results)
             calculate_XY(final_data, rpc)
-
-            all_final_data[rpc] = final_data
-            all_results[rpc] = results
 
 
             #plot_heatmap(final_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
@@ -94,6 +111,9 @@ def main():
             #plot_heatmap(final_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
             #plot_heatmap(final_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")       
             data = data_without_filters.copy()
+        #print(all_results)
+        all_results.append(all_rpc_results)
+    plot_efficiency_vs_time(times, all_results, label=None, title="Efficiency vs Time")
 
 #TO DO filter by space
 
