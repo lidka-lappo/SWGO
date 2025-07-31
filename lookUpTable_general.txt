@@ -1,9 +1,10 @@
 [general]
 n_of_rpcs: 3
+pitch: 60
 streamer_threshold: 100
 strips: 4
 vprop: 202.7
 [ranges]
 QRange: -100 500 0.1
 XRange: 0 300 10
-YRange: -200 200 10
+YRange: -200 200 10 

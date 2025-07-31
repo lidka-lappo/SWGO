@@ -149,6 +149,7 @@ def plot_hist_T(data, detector=1, verbose=False):
 ########################################################
 
 def plot_diffT(data: dict):
+    #maybe TO DO small scintilators 3 and 4, other detectors? 
     """
     Plots histogram of T_S1 - T_S2 time differences from scintillators.
     """
@@ -158,8 +159,8 @@ def plot_diffT(data: dict):
         T_S2 = data["TF_scint"][:, 1]
         T_S3 = data["TF_scint"][:, 2]
         T_S4 = data["TF_scint"][:, 3]
-        
-        diff = T_S3 - T_S4
+
+        diff = T_S1- T_S2
 
         plt.hist(diff, bins=100, edgecolor='black')
         plt.title("T_S1 - T_S2 Distribution")
@@ -170,6 +171,34 @@ def plot_diffT(data: dict):
 
     except KeyError as e:
         print(f"Missing expected data key: {e}")
+
+
+#########################################################
+
+
+def plot_heatmap(XY, binsX, binsY, rpc, name): 
+    """
+    Parameters:
+    - XY: 2D numpy array (e.g. Qmedian in XY bins)
+    - binsX: 1D numpy array of bin edges for X
+    - binsY: 1D numpy array of bin edges for Y
+    - rpc: int, RPC detector number (used to calculate voltage)
+    - name: str, label to use in plot title
+    """
+    plt.imshow(
+        XY.T, 
+        origin='lower', 
+        aspect='auto',
+        extent=[binsX[0], binsX[-1], binsY[0], binsY[-1]],
+        cmap='viridis'
+    )
+    plt.colorbar(label=f'{name}')
+    plt.xlabel('X position (mm)')
+    plt.ylabel('Y position (mm)')
+    plt.title(f'{name}: Heatmap for RPC {rpc}')
+    plt.tight_layout()
+    plt.show()
+
 
 
 

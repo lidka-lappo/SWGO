@@ -1,4 +1,5 @@
 import configparser
+import numpy as np
 
 def load_general_config(filepath: str) -> dict:
     config = configparser.ConfigParser()
@@ -6,7 +7,8 @@ def load_general_config(filepath: str) -> dict:
 
     def parse_range(raw: str):
         parts = list(map(float, raw.strip().split()))
-        return {'min': parts[0], 'max': parts[1], 'step': parts[2]}
+        min_val, max_val, step = parts
+        return np.arange(min_val, max_val, step)
 
     return {
         'general': {
@@ -14,6 +16,7 @@ def load_general_config(filepath: str) -> dict:
             'streamer_threshold': config.getint('general', 'streamer_threshold'),
             'strips': config.getint('general', 'strips'),
             'vprop': config.getfloat('general', 'vprop'),
+            'pitch': config.getfloat('general', 'pitch'),
         },
         'ranges': {
             'QRange': parse_range(config['ranges']['QRange']),
