@@ -1,4 +1,9 @@
-n_of_rpcs = 3
-streamer_treshhold = 100
-strips = 4
-vprop = 202.7
+[general]
+n_of_rpcs: 3
+streamer_threshold: 100
+strips: 4
+vprop: 202.7
+[ranges]
+QRange: -100 500 0.1
+XRange: 0 300 10
+YRange: -200 200 10

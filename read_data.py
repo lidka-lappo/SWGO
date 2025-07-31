@@ -1,101 +1,67 @@
 import os
 import scipy.io
-from scipy.sparse import coo_matrix
+from load_lookUpTable import load_detector_mapping, load_general_config  
 
-def load_lookup_table(filepath):
-    lookup = {}
-    with open(filepath, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-
-            parts = line.split(',')
-            if len(parts) != 5:
-                raise ValueError(f"Expected 5 columns per line, got {len(parts)}: {line}")
-
-            group = parts[0].strip()  # can be '1', 'scintillators', etc.
-            Q_F = list(map(int, parts[1].strip().split())) if parts[1].strip() else []
-            Q_B = list(map(int, parts[2].strip().split())) if parts[2].strip() else []
-            T_F = list(map(int, parts[3].strip().split())) if parts[3].strip() else []
-            T_B = list(map(int, parts[4].strip().split())) if parts[4].strip() else []
-
-            lookup[group] = {
-                'Q_F': Q_F,
-                'Q_B': Q_B,
-                'T_F': T_F,
-                'T_B': T_B,
-            }
-    return lookup
-
-def read_data(dataset_file, verbose=False):
-    import os
-    import scipy.io
-
+def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
     if not os.path.exists(dataset_file):
         print(f"File not found: {dataset_file}")
         return None
 
     try:
-        from scipy.sparse import coo_matrix
-
         data = scipy.io.loadmat(dataset_file)
 
         Q_all = data['Q_F'].toarray()
         T_all = data['T_F'].toarray()
-
         EBtime = data['EBtime'].flatten()
         triggerType = data['triggerType'].flatten()
 
-        lookup_table = load_lookup_table("lookUpTable_swgo.txt")
-        n_of_rpcs = 3
+        # Load mappings and config
+        lookup_table = load_detector_mapping("lookUpTable_swgo.txt")
 
-        # Initialize return dictionary
+
         result = {
             'EBtime': EBtime,
             'triggerType': triggerType
         }
 
+        general_config = load_general_config("lookUpTable_general.txt")
+        n_of_rpcs = general_config["general"]["n_of_rpcs"]
+
         # RPCs
         for rpc in range(1, n_of_rpcs + 1):
             key = f"RPC {rpc}"
             cfg = lookup_table.get(key)
-            if cfg:
-                result[f"QF_RPC{rpc}"] = Q_all[:, cfg['Q_F']]
-                result[f"QB_RPC{rpc}"] = Q_all[:, cfg['Q_B']]
-                result[f"TF_RPC{rpc}"] = T_all[:, cfg['T_F']]
-                result[f"TB_RPC{rpc}"] = T_all[:, cfg['T_B']]
+            if not cfg:
+                continue
 
-                if verbose:
-                    print(f"{key}:")
-                    print("  Q_F shape:", result[f"QF_RPC{rpc}"].shape)
-                    print("  Q_B shape:", result[f"QB_RPC{rpc}"].shape)
-                    print("  T_F shape:", result[f"TF_RPC{rpc}"].shape)
-                    print("  T_B shape:", result[f"TB_RPC{rpc}"].shape)
-                    print()
-
-        # scintillators
-        cfg = lookup_table.get("scintillators")
-        if cfg:
-            result['QF_scint'] = Q_all[:, cfg['Q_F']]
-            result['TF_scint'] = T_all[:, cfg['T_F']]
+            result.update({
+                f"QF_RPC{rpc}": Q_all[:, cfg['Q_F']],
+                f"QB_RPC{rpc}": Q_all[:, cfg['Q_B']],
+                f"TF_RPC{rpc}": T_all[:, cfg['T_F']],
+                f"TB_RPC{rpc}": T_all[:, cfg['T_B']],
+            })
 
             if verbose:
-                print("scintillators:")
-                print("  Q_F shape:", result['QF_scint'].shape)
-                print("  T_F shape:", result['TF_scint'].shape)
+                print(f"{key}:")
+                print("  Q_F shape:", result[f"QF_RPC{rpc}"].shape)
+                print("  Q_B shape:", result[f"QB_RPC{rpc}"].shape)
+                print("  T_F shape:", result[f"TF_RPC{rpc}"].shape)
+                print("  T_B shape:", result[f"TB_RPC{rpc}"].shape)
                 print()
 
-        # crew
-        cfg = lookup_table.get("crew")
-        if cfg:
-            result['QF_crew'] = Q_all[:, cfg['Q_F']]
-            result['TF_crew'] = T_all[:, cfg['T_F']]
+        # Additional groups
+        for group in ['scint', 'crew']:
+            cfg = lookup_table.get(group)
+            if not cfg:
+                continue
+
+            result[f'QF_{group}'] = Q_all[:, cfg['Q_F']]
+            result[f'TF_{group}'] = T_all[:, cfg['T_F']]
 
             if verbose:
-                print("crew:")
-                print("  Q_F shape:", result['QF_crew'].shape)
-                print("  T_F shape:", result['TF_crew'].shape)
+                print(f"{group}:")
+                print("  Q_F shape:", result[f'QF_{group}'].shape)
+                print("  T_F shape:", result[f'TF_{group}'].shape)
                 print()
 
         return result
@@ -103,6 +69,7 @@ def read_data(dataset_file, verbose=False):
     except Exception as e:
         print(f"Error reading {dataset_file}: {e}")
         return None
+
 
 ########################################################
 #TEST
