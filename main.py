@@ -11,7 +11,8 @@ from filters import apply_mask, apply_rpc_offsets
 from load_lookUpTable import load_rpc_parameters, load_general_config
 from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_XY
 
-from datetime import datetime
+
+from datetime import datetime, timedelta
 import re
 
 
@@ -24,7 +25,8 @@ detector =  1, 2, 3, "scint", "crew"
 
 def main():
 
-    folder = "sweap_197_199"
+    #folder = "sweap4"
+    folder = "rise2"
     start_date = None   #  "01-01-2024" or DOY or + hh:mm:ss
     #end_date = "184"      #  "01-07-2024" or DOY or + hh:mm:ss
     end_date = None
@@ -42,17 +44,6 @@ def main():
         if data is None:
             print("Failed to read data.")
             continue
-
-        #####
-        match = re.search(r'(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2}-\d{2})', file_path)
-        if match:
-            date_str = match.group(1)
-            time_str = match.group(2).replace("-", ":")
-            timestamp = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
-        else:
-            print("Could not extract timestamp from filename. Skipping.")
-            continue
-        times.append(timestamp)
 
 
         #####
@@ -81,7 +72,7 @@ def main():
         n_of_rpcs = 2
 
         all_rpc_results = {}
-
+        print(data['EBtime'])
         data_without_filters = data.copy()
         for rpc in range(1, n_of_rpcs + 1):
             print(f"\n=== Processing RPC{rpc} ===")
@@ -96,11 +87,11 @@ def main():
             print(f"After finding Qmax strips: {np.sum(mask2)} / {len(mask2)}")
             apply_mask(data, mask2)
 
-
+            
             ###############results
             final_data = calculate_Q_T(data, rpc)
             
-
+            
             results = calculate_parameters(final_data, raw_events, rpc, verbose=0)
             all_rpc_results.update(results)
             calculate_XY(final_data, rpc)
@@ -113,9 +104,9 @@ def main():
             data = data_without_filters.copy()
         #print(all_results)
         all_results.append(all_rpc_results)
-    plot_efficiency_vs_time(times, all_results, label=None, title="Efficiency vs Time")
+    plot_efficiency_vs_time(all_results, label=None, title="Efficiency vs Time")
 
-#TO DO filter by space
+#####TO DO filter by space
 
 if __name__ == "__main__":
     main()

@@ -2,12 +2,16 @@ import numpy as np
 from load_lookUpTable import load_general_config , load_rpc_parameters
 
 import numpy as np
+import datetime
+from datetime import datetime, timedelta
 
 def calculate_Q_T(data, rpc):
     QFmax = data[f'QFmax_RPC{rpc}']
     QBmax = data[f'QBmax_RPC{rpc}']
     Xmax = data[f"Xmax_RPC{rpc}"] 
-    
+
+    EBtime = data["EBtime"] 
+
     rows = np.arange(Xmax.shape[0])
 
     TF_selected = data[f"TF_RPC{rpc}"][rows, Xmax]
@@ -27,10 +31,17 @@ def calculate_Q_T(data, rpc):
         f"T_RPC{rpc}": T,
         f"Q_RPC{rpc}": Q,
         f"Yraw_RPC{rpc}": Yraw,
-        f"Xraw_RPC{rpc}": Xraw
+        f"Xraw_RPC{rpc}": Xraw,
+        f"EBtime_RPC{rpc}": EBtime
     }
     return results
 
+def matlab_datenum_to_datetime(matlab_datenum):
+    # MATLAB datenum starts at year 0, Python datetime starts at 0001-01-01
+    days = int(matlab_datenum)
+    frac = matlab_datenum % 1
+    python_datetime = datetime.fromordinal(days - 366) + timedelta(days=frac)
+    return python_datetime
 
 def calculate_parameters(data, raw_events, rpc, verbose=False):
     """
@@ -52,6 +63,13 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
 
     Q = data[f"Q_RPC{rpc}"]
     T = data[f"T_RPC{rpc}"]
+    EBtime = data[f'EBtime_RPC{rpc}']
+
+
+    t_start = EBtime[0] + T[0] / (24 * 3600)
+    t_end = EBtime[-1] + T[-1] / (24 * 3600)
+    #time = (t_start, t_end)
+    time = matlab_datenum_to_datetime(t_start)
 
 
     # Calculate efficiency
@@ -92,6 +110,7 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
         err_ST = np.nan
 
     results = {
+        f'time_RPC{rpc}': time,
         f'efficiency_RPC{rpc}': efficiency,
         f'efficiency_error_RPC{rpc}': efficiency_error,
         f'Qmean_RPC{rpc}': Qmean,
@@ -108,6 +127,7 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
 
     if verbose:
         print(f"RPC{rpc} results:")
+        print(f"  Time range: {time}")
         print(f"  Efficiency: {efficiency:.4f} ± {efficiency_error:.4f}")
         print(f"  Qmean: {Qmean:.2f} ± {err_Qmean:.2f}")
         print(f"  Qmean noST: {Qmean_noST:.2f} ± {err_Qmean_noST:.2f}")

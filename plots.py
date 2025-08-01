@@ -202,20 +202,21 @@ def plot_heatmap(XY, binsX, binsY, rpc, name):
 #########################################################
 
 
-import matplotlib.pyplot as plt
-
-def plot_efficiency_vs_time(times, all_results, label=None, title="Efficiency vs Time"):
-    times = np.array(times)
+def plot_efficiency_vs_time(all_results, label=None, title="Efficiency vs Time"):
+    #times = np.array(times)
     for rpc in [1, 2, 3]:  # Or use config
         effs = []
         errs = []
+        times = []
         for result in all_results:
+            t = result.get(f'time_RPC{rpc}', np.nan)
             eff = result.get(f'efficiency_RPC{rpc}', np.nan)
             err = result.get(f'efficiency_error_RPC{rpc}', np.nan)
             effs.append(eff)
             errs.append(err)
+            times.append(t) 
         if not np.all(np.isnan(effs)):
-            plt.errorbar(times, effs, yerr=errs, fmt='-o', label=f'RPC{rpc}')
+            plt.errorbar(times, effs, yerr=errs, fmt='o', label=f'RPC{rpc}')  
     plt.xlabel("Time")
     plt.ylabel("Efficiency")
     plt.title(title)

@@ -75,9 +75,9 @@ def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
 #TEST
 
 
-# data = read_data("sweap4/sest25184133338.mat", verbose=0)
-# QF_RPC1 = data['QF_RPC1']
-# print("  Q_F RPC1 shape:", QF_RPC1.shape)
+#data = read_data("rise2/sest25146081425.mat", verbose=0)
+#QF_RPC1 = data['QF_RPC1']
+#print("  Q_F RPC1 shape:", QF_RPC1.shape)
 # TF_scint = data['TF_scint']
 # print("  T_F scint shape:", TF_scint.shape)
 
