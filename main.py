@@ -28,8 +28,8 @@ def main():
     #folder = "sweap4"
     folder = "rise2"
     start_date = None   #  "01-01-2024" or DOY or + hh:mm:ss
-    #end_date = "184"      #  "01-07-2024" or DOY or + hh:mm:ss
-    end_date = None
+
+    end_date = "184"      #  "01-07-2024" or DOY or + hh:mm:ss
 
     files = list_files_in_date_range(folder, start_date, end_date)
 
