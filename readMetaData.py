@@ -74,6 +74,9 @@ def read_hv(folder_path, start_date=None, end_date=None):
     if not all_dfs:
         return pd.DataFrame(columns=cols).set_index("datetime")
     
+    if not all_dfs:
+        print("⚠️ No THP data found in the given time period.")
+    
     merged_df = pd.concat(all_dfs).sort_values("datetime")
     merged_df.set_index("datetime", inplace=True)
     return merged_df
@@ -83,12 +86,12 @@ def read_hv(folder_path, start_date=None, end_date=None):
 
 #####################TEST########################
 # Read THP from 2025-05-20 to 2025-05-22
-df_thp = read_thp("thp", start_date="2025-05-26", end_date="2025-05-30")
-print(df_thp.head())
+#df_thp = read_thp("thp", start_date="2025-05-26", end_date="2025-05-30")
+#print(df_thp.head())
 
 
 
 # Read HV from 2025-05-28 to 2025-05-30
-df_hv = read_hv("hv", start_date="2025-05-28", end_date="2025-05-30")
-print(df_hv.head())
+#df_hv = read_hv("hv", start_date="2025-05-28", end_date="2025-05-30")
+#print(df_hv.head())
 #####################################################

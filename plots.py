@@ -209,7 +209,7 @@ def plot_efficiency_vs_time(all_results, label=None, title="Efficiency vs Time")
         errs = []
         times = []
         for result in all_results:
-            t = result.get(f'time_RPC{rpc}', np.nan)
+            t = result.get(f'time_start_RPC{rpc}', np.nan)
             eff = result.get(f'efficiency_RPC{rpc}', np.nan)
             err = result.get(f'efficiency_error_RPC{rpc}', np.nan)
             effs.append(eff)
@@ -226,8 +226,160 @@ def plot_efficiency_vs_time(all_results, label=None, title="Efficiency vs Time")
     plt.grid(True)
     plt.show()
 
+def plot_volatage_vs_time(all_results, label=None, title="Voltage vs Time"):
+    #times = np.array(times)
+    for rpc in [1, 2, 3]:  # Or use config
+        voltages = []
+        times = []
+        for result in all_results:
+            t = result.get(f'time_start_RPC{rpc}', np.nan)
+            V = result.get(f'mean_HV_RPC{rpc}', np.nan)
+            voltages.append(V)
+            times.append(t) 
+        if not np.all(np.isnan(voltages)):
+            plt.errorbar(times, voltages, fmt='o', label=f'RPC{rpc}')  
+    plt.xlabel("Time")
+    plt.ylabel("Voltage")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_temp_vs_time(all_results, label=None, title="Temperature vs Time"):
+    #times = np.array(times)
+    for rpc in [1, 2, 3]:  # Or use config
+        temps = []
+        times = []
+        for result in all_results:
+            t = result.get(f'time_start_RPC{rpc}', np.nan)
+            Temp = result.get(f'mean_Temp_RPC{rpc}', np.nan)
+            temps.append(Temp)
+            times.append(t) 
+        if not np.all(np.isnan(temps)):
+            plt.errorbar(times, temps, fmt='o', label=f'RPC{rpc}')  
+    plt.xlabel("Time")
+    plt.ylabel("Temperature (°C)")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_humidity_vs_time(all_results, label=None, title="Humidity vs Time"):
+    #times = np.array(times)
+    for rpc in [1, 2, 3]:  # Or use config
+        hums = []
+        times = []
+        for result in all_results:
+            t = result.get(f'time_start_RPC{rpc}', np.nan)
+            hum = result.get(f'mean_Hum_RPC{rpc}', np.nan)
+            times.append(t) 
+            hums.append(hum)
+        if not np.all(np.isnan(hums)):
+            plt.errorbar(times, hums, fmt='o', label=f'RPC{rpc}')  
+    plt.xlabel("Time")
+    plt.ylabel("Humidity")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_pressure_vs_time(all_results, label=None, title="Pressure vs Time"):
+    #times = np.array(times)
+    for rpc in [1, 2, 3]:  # Or use config
+        pressures = []
+        times = []
+        for result in all_results:
+            t = result.get(f'time_start_RPC{rpc}', np.nan)
+            press = result.get(f'mean_Press_RPC{rpc}', np.nan)
+            pressures.append(press)
+            times.append(t) 
+        if not np.all(np.isnan(pressures)):
+            plt.errorbar(times, pressures, fmt='o', label=f'RPC{rpc}')  
+    plt.xlabel("Time")
+    plt.ylabel("Pressure")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
+
+
+def plot_efficiency_vs_voltage(all_results, label=None, title="Efficiency vs Voltage"):
+    for rpc in [1, 2, 3]:  # Or use config
+        effs = []
+        errs = []
+        voltages = []
+        for result in all_results:
+            V = result.get(f'mean_HV_RPC{rpc}', np.nan)
+            eff = result.get(f'efficiency_RPC{rpc}', np.nan)
+            err = result.get(f'efficiency_error_RPC{rpc}', np.nan)
+            effs.append(eff)
+            errs.append(err)
+            voltages.append(V) 
+        if not np.all(np.isnan(effs)):
+            plt.errorbar(voltages, effs, yerr=errs, fmt='o', label=f'RPC{rpc}')  
+    plt.xlabel("Voltage (V)")
+    plt.ylabel("Efficiency")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def reduced_electric_field  (V, d, P, T):
+
+    #P in hPa
+    #d in mm
+    #V in V
+    #T in Celsius
+
+    kb = 0.13806  # 10^{-22) J/K Boltzmann constant 
+
+    # Convert temperature from Celsius to Kelvin
+    T_K = T + 273.15
+    
+    # Calculate E/N using the formula
+    E_N = (kb * V * T_K )/ (P*d) #*10^-21 V*m^2 or TB
+    
+    return E_N
+
+#print(reduced_electric_field(5000, 1, 1013, 30))
+
+
+def plot_efficiency_vs_reduced_field(all_results, label=None, title="Efficiency vs E/N"):
+    for rpc in [1, 2, 3]:  # Or use config
+        effs = []
+        errs = []
+        E_N= []
+        for result in all_results:
+            V = result.get(f'mean_HV_RPC{rpc}', np.nan)
+            press = result.get(f'mean_Press_RPC{rpc}', np.nan)
+            Temp = result.get(f'mean_Temp_RPC{rpc}', np.nan)
+            eff = result.get(f'efficiency_RPC{rpc}', np.nan)
+            err = result.get(f'efficiency_error_RPC{rpc}', np.nan)
+            effs.append(eff)
+            errs.append(err)
+            E_N.append(reduced_electric_field(V, 1, press, Temp))
+        if not np.all(np.isnan(effs)):
+            plt.errorbar(E_N, effs, yerr=errs, fmt='o', label=f'RPC{rpc}')
+    plt.xlabel("E/N (Td)")
+    plt.ylabel("Efficiency")
+    plt.title(title)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 ########################################################
 #TEST

@@ -4,6 +4,8 @@ from load_lookUpTable import load_general_config , load_rpc_parameters
 import numpy as np
 import datetime
 from datetime import datetime, timedelta
+from readMetaData import read_hv, read_thp
+
 
 def calculate_Q_T(data, rpc):
     QFmax = data[f'QFmax_RPC{rpc}']
@@ -43,21 +45,7 @@ def matlab_datenum_to_datetime(matlab_datenum):
     python_datetime = datetime.fromordinal(days - 366) + timedelta(days=frac)
     return python_datetime
 
-def calculate_parameters(data, raw_events, rpc, verbose=False):
-    """
-    Analyze event data to calculate efficiency, charge statistics, and streamer fraction.
-
-    Parameters:
-    - data: dict-like object or namespace containing arrays QFmax, QBmax, and T (e.g. data.QFmax)
-    - raw_events: int, total number of raw events (rawEvents)
-
-    Returns:
-      'efficiency', 'efficiency_error',
-      'Qmean', 'Qmean_error', 'Qmedian', 'Qmedian_error',
-      'Qmean_noST', 'Qmean_noST_error', 'Qmedian_noST', 'Qmedian_noST_error',
-      'streamer_fraction', 'streamer_fraction_error'
-    """
-
+def calculate_parameters(data, raw_events, rpc, hv_folder=None, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
     strTh = general_config["general"]["streamer_threshold"]
 
@@ -65,19 +53,14 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
     T = data[f"T_RPC{rpc}"]
     EBtime = data[f'EBtime_RPC{rpc}']
 
-
-    t_start = EBtime[0] + T[0] / (24 * 3600)
-    t_end = EBtime[-1] + T[-1] / (24 * 3600)
-    #time = (t_start, t_end)
-    time = matlab_datenum_to_datetime(t_start)
-
+    # Convert MATLAB datenum to datetime for start and end
+    t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
+    t_end   = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
 
     # Calculate efficiency
     Events = np.sum(~np.isnan(T))
     efficiency = Events / raw_events if raw_events > 0 else np.nan
     efficiency_error = np.sqrt(efficiency * (1 - efficiency) / raw_events) if raw_events > 0 else np.nan
-
-
 
     # Filter Q values
     Qvalid = Q[(Q < 10000) & (~np.isnan(Q))]
@@ -99,7 +82,7 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
     Qmedian_noST = np.nanmedian(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
     err_Qmedian_noST = np.nanmedian(np.abs(Qvalid_noST - Qmedian_noST)) if len(Qvalid_noST) > 0 else np.nan
 
-    # Streamer fraction and error
+    # Streamer fraction
     try:
         total_valid_events = np.sum(~np.isnan(Q))
         streamer_events = np.sum(Q > strTh)
@@ -109,8 +92,67 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
         ST = np.nan
         err_ST = np.nan
 
+    # ===== Get mean HV in time range =====
+    
+    mean_HV = np.nan
+   
+    df_hv = read_hv(
+        "hv",
+        start_date=t_start.strftime("%Y-%m-%d"),
+        end_date=t_end.strftime("%Y-%m-%d")
+    )
+
+    # Filter exact time range
+    df_hv = df_hv.loc[(df_hv.index >= t_start) & (df_hv.index <= t_end)]
+
+    #if not df_hv.empty:
+    #    cols_to_avg = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
+    #    mean_HV = df_hv[cols_to_avg].mean().mean()
+    if not df_hv.empty:
+        cols_to_sum = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
+        mean_HV = (df_hv[cols_to_sum].sum(axis=1)).mean()
+
+      # ===== Get Temperature, Humidity and Pressure in time range =====
+    
+    mean_Temp = np.nan
+    mean_Hum = np.nan
+    mean_Press = np.nan
+   
+    df_thp = read_thp(
+        "thp",
+        start_date=t_start.strftime("%Y-%m-%d"),
+        end_date=t_end.strftime("%Y-%m-%d")
+    )
+
+    # Filter exact time range
+    df_thp = df_thp.loc[(df_thp.index >= t_start) & (df_thp.index <= t_end)]
+
+    def no_outliers(row, min_val, max_val):
+        values = row.values.astype(float)
+        #q1, q3 = np.percentile(values, [25, 75])   # quartiles
+        #iqr = q3 - q1
+        #lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+        #filtered = [v for v in values if lower <= v <= upper and min_val <= v <= max_val]  # remove outliers
+        filtered = [v for v in values if min_val <= v <= max_val]  # remove outliers
+        return np.mean(filtered)
+
+    if not df_thp.empty:
+        cols_T = [f"T1", "T2", "T3", "T4"]
+        row_T_means = df_thp[cols_T].apply(no_outliers, axis=1, min_val=10, max_val=50)
+        mean_Temp = row_T_means.mean(skipna=True)
+
+        cols_H = [f"h1", "h2"]
+        mean_H_rows = df_thp[cols_H].apply(no_outliers, axis=1, min_val=0, max_val=100)
+        mean_Hum = mean_H_rows.mean(skipna=True)
+        print(mean_Hum)
+
+        cols_P = [f"p1", "p2"]
+        mean_P_rows = df_thp[cols_P].apply(no_outliers, axis=1, min_val=400, max_val=1200)
+        mean_Press = mean_P_rows.mean(skipna=True)  
+
     results = {
-        f'time_RPC{rpc}': time,
+        f"time_start_RPC{rpc}": t_start,
+        f"time_end_RPC{rpc}": t_end,
         f'efficiency_RPC{rpc}': efficiency,
         f'efficiency_error_RPC{rpc}': efficiency_error,
         f'Qmean_RPC{rpc}': Qmean,
@@ -122,20 +164,23 @@ def calculate_parameters(data, raw_events, rpc, verbose=False):
         f'Qmedian_noST_RPC{rpc}': Qmedian_noST,
         f'Qmedian_noST_error_RPC{rpc}': err_Qmedian_noST,
         f'streamer_fraction_RPC{rpc}': ST,
-        f'streamer_fraction_error_RPC{rpc}': err_ST
+        f'streamer_fraction_error_RPC{rpc}': err_ST,
+        f'mean_HV_RPC{rpc}': mean_HV,
+        f'mean_Temp_RPC{rpc}': mean_Temp,
+        f'mean_Hum_RPC{rpc}': mean_Hum,
+        f'mean_Press_RPC{rpc}': mean_Press
     }
 
     if verbose:
         print(f"RPC{rpc} results:")
-        print(f"  Time range: {time}")
+        print(f"  Time range: {t_start} -> {t_end}")
         print(f"  Efficiency: {efficiency:.4f} ± {efficiency_error:.4f}")
         print(f"  Qmean: {Qmean:.2f} ± {err_Qmean:.2f}")
         print(f"  Qmean noST: {Qmean_noST:.2f} ± {err_Qmean_noST:.2f}")
         print(f"  Qmedian: {Qmedian:.2f} ± {err_Qmedian:.2f}")
         print(f"  Qmedian noST: {Qmedian_noST:.2f} ± {err_Qmedian_noST:.2f}")
         print(f"  Streamer fraction: {ST:.2f}% ± {err_ST:.2f}%")
-
-
+        print(f"  Mean HV in range: {mean_HV:.2f}" if not np.isnan(mean_HV) else "  Mean HV: No data")
 
     return results
 
