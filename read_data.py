@@ -1,8 +1,9 @@
 import os
 import scipy.io
+import pandas as pd
 from load_lookUpTable import load_detector_mapping, load_general_config  
 
-def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
+def read_data(dataset_file: str, verbose: bool = False) -> pd.DataFrame | None:
     if not os.path.exists(dataset_file):
         print(f"File not found: {dataset_file}")
         return None
@@ -17,15 +18,14 @@ def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
 
         # Load mappings and config
         lookup_table = load_detector_mapping("lookUpTable_swgo.txt")
-
-
-        result = {
-            'EBtime': EBtime,
-            'triggerType': triggerType
-        }
-
         general_config = load_general_config("lookUpTable_general.txt")
         n_of_rpcs = general_config["general"]["n_of_rpcs"]
+
+        # Initialize DataFrame
+        df = pd.DataFrame({
+            'EBtime': EBtime,
+            'triggerType': triggerType
+        })
 
         # RPCs
         for rpc in range(1, n_of_rpcs + 1):
@@ -34,20 +34,13 @@ def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
             if not cfg:
                 continue
 
-            result.update({
-                f"QF_RPC{rpc}": Q_all[:, cfg['Q_F']],
-                f"QB_RPC{rpc}": Q_all[:, cfg['Q_B']],
-                f"TF_RPC{rpc}": T_all[:, cfg['T_F']],
-                f"TB_RPC{rpc}": T_all[:, cfg['T_B']],
-            })
+            df[f"QF_RPC{rpc}"] = [Q_all[i, cfg['Q_F']] for i in range(Q_all.shape[0])]
+            df[f"QB_RPC{rpc}"] = [Q_all[i, cfg['Q_B']] for i in range(Q_all.shape[0])]
+            df[f"TF_RPC{rpc}"] = [T_all[i, cfg['T_F']] for i in range(T_all.shape[0])]
+            df[f"TB_RPC{rpc}"] = [T_all[i, cfg['T_B']] for i in range(T_all.shape[0])]
 
             if verbose:
-                print(f"{key}:")
-                print("  Q_F shape:", result[f"QF_RPC{rpc}"].shape)
-                print("  Q_B shape:", result[f"QB_RPC{rpc}"].shape)
-                print("  T_F shape:", result[f"TF_RPC{rpc}"].shape)
-                print("  T_B shape:", result[f"TB_RPC{rpc}"].shape)
-                print()
+                print(f"{key} added to DataFrame with matrices of shape {Q_all[:, cfg['Q_F']].shape}")
 
         # Additional groups
         for group in ['scint', 'crew']:
@@ -55,16 +48,18 @@ def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
             if not cfg:
                 continue
 
-            result[f'QF_{group}'] = Q_all[:, cfg['Q_F']]
-            result[f'TF_{group}'] = T_all[:, cfg['T_F']]
+            df[f"QF_{group}"] = [Q_all[i, cfg['Q_F']] for i in range(Q_all.shape[0])]
+            df[f"TF_{group}"] = [T_all[i, cfg['T_F']] for i in range(T_all.shape[0])]
 
             if verbose:
-                print(f"{group}:")
-                print("  Q_F shape:", result[f'QF_{group}'].shape)
-                print("  T_F shape:", result[f'TF_{group}'].shape)
-                print()
+                print(f"{group} added to DataFrame with matrices of shape {Q_all[:, cfg['Q_F']].shape}")
 
-        return result
+        return df
+
+    except Exception as e:
+        print(f"Error reading {dataset_file}: {e}")
+        return None
+
 
     except Exception as e:
         print(f"Error reading {dataset_file}: {e}")
@@ -74,12 +69,15 @@ def read_data(dataset_file: str, verbose: bool = False) -> dict | None:
 ########################################################
 #TEST
 
+# df = read_data("rise2/sest25146081425.mat", verbose=0)
+# QF_RPC1 = df['QF_RPC1'].to_list()  # list of matrices per event
+# print("  Number of events:", len(QF_RPC1))
+# print("  Shape of first event QF_RPC1:", QF_RPC1[0].shape)
 
-#data = read_data("rise2/sest25146081425.mat", verbose=0)
-#QF_RPC1 = data['QF_RPC1']
-#print("  Q_F RPC1 shape:", QF_RPC1.shape)
-# TF_scint = data['TF_scint']
-# print("  T_F scint shape:", TF_scint.shape)
+# # Get scintillator TF matrix
+# TF_scint = df['TF_scint'].to_list()
+# print("  Number of events:", len(TF_scint))
+# print("  Shape of first event TF_scint:", TF_scint[0].shape)
 
 ########################################################
 #TEST

@@ -2,176 +2,191 @@ import matplotlib.pyplot as plt
 import numpy as np
 from load_lookUpTable import load_general_config  
 
-def plot_hist_Q(data, detector=1, verbose=False):
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_hist_Q(df, detector, verbose=False):
+
     general_config = load_general_config("lookUpTable_general.txt")
     n_of_rpcs = general_config["general"]["n_of_rpcs"]
-
-    if isinstance(detector, int) and 1 <= detector <= n_of_rpcs:
-        # --- RPC mode ---
-        qf_key = f"QF_RPC{detector}"
-        qb_key = f"QB_RPC{detector }"
-
-        if qf_key in data and qb_key in data:
-            qf_data = np.array(data[qf_key])
-            qb_data = np.array(data[qb_key])
-
-            fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-            for i in range(4):
-                axes[0, i].hist(qf_data[:, i], bins=50, alpha=0.7, color='blue')
-                axes[0, i].set_title(f"QF RPC{detector} Strip {i+1}")
-                axes[0, i].set_xlabel("Charge")
-                axes[0, i].set_ylabel("Count")
-                axes[0, i].grid(True)
-
-                axes[1, i].hist(qb_data[:, i], bins=50, alpha=0.7, color='green')
-                axes[1, i].set_title(f"QB RPC{detector} Strip {i+1}")
-                axes[1, i].set_xlabel("Charge")
-                axes[1, i].set_ylabel("Count")
-                axes[1, i].grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print(f"Missing data for RPC {detector}: {qf_key} or {qb_key}")
-
-    elif detector == "scint":
-        key = "QF_scint"
-        if key in data:
-            scint_data = np.array(data[key])
-            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-            for i in range(4):
-                ax = axes[i // 2, i % 2]
-                ax.hist(scint_data[:, i], bins=50, alpha=0.7, color='orange')
-                ax.set_title(f"QF scint {i+1}")
-                ax.set_xlabel("Charge")
-                ax.set_ylabel("Count")
-                ax.grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print("Missing data: QF_scint")
-
-    elif detector == "crew":
-        key = "QF_crew"
-        if key in data:
-            crew_data = np.array(data[key])
-            fig, axes = plt.subplots(1, 4, figsize=(16, 4))
-            for i in range(4):
-                axes[i].hist(crew_data[:, i], bins=50, alpha=0.7, color='purple')
-                axes[i].set_title(f"QF crew {i+1}")
-                axes[i].set_xlabel("Charge")
-                axes[i].set_ylabel("Count")
-                axes[i].grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print("Missing data: QF_crew")
-
-    else:
-        print(f"Invalid detector argument: {detector}. Must be 1–{n_of_rpcs}, 'scint', or 'crew'.")
-
-
-
-########################################################
-def plot_hist_T(data, detector=1, verbose=False):
-    general_config = load_general_config("lookUpTable_general.txt")
-    n_of_rpcs = general_config["general"]["n_of_rpcs"]
-
-    if isinstance(detector, int) and 1 <= detector <= n_of_rpcs:
-        # --- RPC mode ---
-        tf_key = f"TF_RPC{detector}"
-        tb_key = f"TB_RPC{detector}"
-
-        if tf_key in data and tb_key in data:
-            tf_data = np.array(data[tf_key])
-            tb_data = np.array(data[tb_key])
-
-            fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-            for i in range(4):
-                axes[0, i].hist(tf_data[:, i], bins=50, alpha=0.7, color='red')
-                axes[0, i].set_title(f"TF RPC{detector} Strip {i+1}")
-                axes[0, i].set_xlabel("Time")
-                axes[0, i].set_ylabel("Count")
-                axes[0, i].grid(True)
-
-                axes[1, i].hist(tb_data[:, i], bins=50, alpha=0.7, color='brown')
-                axes[1, i].set_title(f"TB RPC{detector} Strip {i+1}")
-                axes[1, i].set_xlabel("Time")
-                axes[1, i].set_ylabel("Count")
-                axes[1, i].grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print(f"Missing data for RPC {detector}: {tf_key} or {tb_key}")
-
-    elif detector == "scint":
-        key = "TF_scint"
-        if key in data:
-            scint_data = np.array(data[key])
-            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-            for i in range(4):
-                ax = axes[i // 2, i % 2]
-                ax.hist(scint_data[:, i], bins=50, alpha=0.7, color='coral')
-                ax.set_title(f"TF scint {i+1}")
-                ax.set_xlabel("Time")
-                ax.set_ylabel("Count")
-                ax.grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print("Missing data: TF_scint")
-
-    elif detector == "crew":
-        key = "TF_crew"
-        if key in data:
-            crew_data = np.array(data[key])
-            fig, axes = plt.subplots(1, 4, figsize=(16, 4))
-            for i in range(4):
-                axes[i].hist(crew_data[:, i], bins=50, alpha=0.7, color='orchid')
-                axes[i].set_title(f"TF crew {i+1}")
-                axes[i].set_xlabel("Time")
-                axes[i].set_ylabel("Count")
-                axes[i].grid(True)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            print("Missing data: TF_crew")
-
-    else:
-        print(f"Invalid detector argument: {detector}. Must be 1–{n_of_rpcs}, 'scint', or 'crew'.")
-
-
-########################################################
-
-def plot_diffT(data: dict):
-    #maybe TO DO small scintilators 3 and 4, other detectors? 
-    """
-    Plots histogram of T_S1 - T_S2 time differences from scintillators.
-    """
-
+    
     try:
-        T_S1 = data["TF_scint"][:, 0]
-        T_S2 = data["TF_scint"][:, 1]
-        T_S3 = data["TF_scint"][:, 2]
-        T_S4 = data["TF_scint"][:, 3]
+        if isinstance(detector, int) and 1 <= detector <= n_of_rpcs:
+            # RPC mode
+            qf_key = f"QF_RPC{detector}"
+            qb_key = f"QB_RPC{detector}"
+            
+            if qf_key in df.columns and qb_key in df.columns:
+                qf_data = np.array(df[qf_key].tolist())
+                qb_data = np.array(df[qb_key].tolist())
+                
+                fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+                for i in range(4):
+                    axes[0, i].hist(qf_data[:, i], bins=50, alpha=0.7, color='blue')
+                    axes[0, i].set_title(f"QF RPC{detector} Strip {i+1}")
+                    axes[0, i].set_xlabel("Charge")
+                    axes[0, i].set_ylabel("Count")
+                    axes[0, i].grid(True)
 
-        diff = T_S1- T_S2
+                    axes[1, i].hist(qb_data[:, i], bins=50, alpha=0.7, color='green')
+                    axes[1, i].set_title(f"QB RPC{detector} Strip {i+1}")
+                    axes[1, i].set_xlabel("Charge")
+                    axes[1, i].set_ylabel("Count")
+                    axes[1, i].grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print(f"Missing data for RPC {detector}: {qf_key} or {qb_key}")
 
+        elif detector == "scint":
+            key = "QF_scint"
+            if key in df.columns:
+                scint_data = np.array(df[key].tolist())
+                fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+                for i in range(4):
+                    ax = axes[i // 2, i % 2]
+                    ax.hist(scint_data[:, i], bins=50, alpha=0.7, color='orange')
+                    ax.set_title(f"QF scint {i+1}")
+                    ax.set_xlabel("Charge")
+                    ax.set_ylabel("Count")
+                    ax.grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print("Missing data: QF_scint")
+
+        elif detector == "crew":
+            key = "QF_crew"
+            if key in df.columns:
+                crew_data = np.array(df[key].tolist())
+                fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+                for i in range(4):
+                    axes[i].hist(crew_data[:, i], bins=50, alpha=0.7, color='purple')
+                    axes[i].set_title(f"QF crew {i+1}")
+                    axes[i].set_xlabel("Charge")
+                    axes[i].set_ylabel("Count")
+                    axes[i].grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print("Missing data: QF_crew")
+        else:
+            print(f"Invalid detector argument: {detector}. Must be 1–{n_of_rpcs}, 'scint', or 'crew'.")
+    
+    except Exception as e:
+        print(f"Error while plotting: {e}")
+
+
+
+########################################################
+def plot_hist_T(df, detector=1, verbose=False):
+
+    general_config = load_general_config("lookUpTable_general.txt")
+    n_of_rpcs = general_config["general"]["n_of_rpcs"]
+    
+    try:
+        if isinstance(detector, int) and 1 <= detector <= n_of_rpcs:
+            # RPC mode
+            tf_key = f"TF_RPC{detector}"
+            tb_key = f"TB_RPC{detector}"
+            
+            if tf_key in df.columns and tb_key in df.columns:
+                tf_data = np.array(df[tf_key].tolist())
+                tb_data = np.array(df[tb_key].tolist())
+                
+                fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+                for i in range(4):
+                    axes[0, i].hist(tf_data[:, i], bins=50, alpha=0.7, color='red')
+                    axes[0, i].set_title(f"TF RPC{detector} Strip {i+1}")
+                    axes[0, i].set_xlabel("Time")
+                    axes[0, i].set_ylabel("Count")
+                    axes[0, i].grid(True)
+
+                    axes[1, i].hist(tb_data[:, i], bins=50, alpha=0.7, color='brown')
+                    axes[1, i].set_title(f"TB RPC{detector} Strip {i+1}")
+                    axes[1, i].set_xlabel("Time")
+                    axes[1, i].set_ylabel("Count")
+                    axes[1, i].grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print(f"Missing data for RPC {detector}: {tf_key} or {tb_key}")
+
+        elif detector == "scint":
+            key = "TF_scint"
+            if key in df.columns:
+                scint_data = np.array(df[key].tolist())
+                fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+                for i in range(4):
+                    ax = axes[i // 2, i % 2]
+                    ax.hist(scint_data[:, i], bins=50, alpha=0.7, color='coral')
+                    ax.set_title(f"TF scint {i+1}")
+                    ax.set_xlabel("Time")
+                    ax.set_ylabel("Count")
+                    ax.grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print("Missing data: TF_scint")
+
+        elif detector == "crew":
+            key = "TF_crew"
+            if key in df.columns:
+                crew_data = np.array(df[key].tolist())
+                fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+                for i in range(4):
+                    axes[i].hist(crew_data[:, i], bins=50, alpha=0.7, color='orchid')
+                    axes[i].set_title(f"TF crew {i+1}")
+                    axes[i].set_xlabel("Time")
+                    axes[i].set_ylabel("Count")
+                    axes[i].grid(True)
+                
+                plt.tight_layout()
+                plt.show()
+            else:
+                print("Missing data: TF_crew")
+        else:
+            print(f"Invalid detector argument: {detector}. Must be 1–{n_of_rpcs}, 'scint', or 'crew'.")
+    
+    except Exception as e:
+        print(f"Error while plotting: {e}")
+
+########################################################
+
+
+
+def plot_diffT(df):
+    try:
+        # Convert the TF_crew column (lists) to a 2D numpy array
+        tf_array = np.array(df['TF_scint'].tolist())
+        
+        # Extract times for each scintillator
+        T_S1 = tf_array[:, 0]
+        T_S2 = tf_array[:, 1]
+        # Optional if you want to use S3, S4
+        # T_S3 = tf_array[:, 2]
+        # T_S4 = tf_array[:, 3]
+        
+        # Compute difference
+        diff = T_S1 - T_S2
+        
+        # Plot histogram
         plt.hist(diff, bins=100, edgecolor='black')
         plt.title("T_S1 - T_S2 Distribution")
         plt.xlabel("Time Difference (ns)")
         plt.ylabel("Counts")
         plt.grid(True)
         plt.show()
-
-    except KeyError as e:
-        print(f"Missing expected data key: {e}")
-
+        
+    except KeyError:
+        print("DataFrame is missing 'TF_crew' column.")
+    except Exception as e:
+        print(f"Error while plotting: {e}")
 
 #########################################################
 
