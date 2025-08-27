@@ -3,7 +3,7 @@ import scipy.io
 import pandas as pd
 from load_lookUpTable import load_detector_mapping, load_general_config  
 
-def read_data(dataset_file: str, verbose: bool = False) -> pd.DataFrame | None:
+def read_data(dataset_file: str, verbose: bool = False):
     if not os.path.exists(dataset_file):
         print(f"File not found: {dataset_file}")
         return None
@@ -20,7 +20,6 @@ def read_data(dataset_file: str, verbose: bool = False) -> pd.DataFrame | None:
         lookup_table = load_detector_mapping("lookUpTable_swgo.txt")
         general_config = load_general_config("lookUpTable_general.txt")
         n_of_rpcs = general_config["general"]["n_of_rpcs"]
-
         # Initialize DataFrame
         df = pd.DataFrame({
             'EBtime': EBtime,

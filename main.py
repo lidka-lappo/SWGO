@@ -78,22 +78,23 @@ def main():
         data_without_filters = data.copy()
 
         for rpc in range(1, n_of_rpcs + 1):
-            apply_filters(data, rpc, all_rpc_results, raw_events, verbose=True)
-
-            #plot_heatmap(final_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
-            #plot_heatmap(final_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
-            #plot_heatmap(final_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
-            #plot_heatmap(final_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")       
+            print(data.shape)
+            final_data, XY_data, processed_data, run_parameters = apply_filters(data, rpc, all_rpc_results, raw_events, verbose=True)
+            all_rpc_results.update(run_parameters)
+            # plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
+            # plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
+            # plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
+            # plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")       
             data = data_without_filters.copy()
-#         #print(all_results)
-#         all_results.append(all_rpc_results)
-#     #plot_efficiency_vs_reduced_field(all_results, label=None, title="Efficiency vs E/N")
-#     #plot_volatage_vs_time(all_results, label=None)
-#     #plot_temp_vs_time(all_results, label=None)
-#     plot_humidity_vs_time(all_results, label=None)
-#     #plot_pressure_vs_time(all_results, label=None)
-#     #plot_efficiency_vs_voltage(all_results, label=None)
-#     #plot_efficiency_vs_time(all_results, label=None)
+        print(all_results)
+        all_results.append(all_rpc_results)
+    # plot_efficiency_vs_reduced_field(all_results, label=None, title="Efficiency vs E/N")
+    # plot_volatage_vs_time(all_results, label=None)
+    # plot_temp_vs_time(all_results, label=None)
+    # plot_humidity_vs_time(all_results, label=None)
+    # plot_pressure_vs_time(all_results, label=None)
+    # plot_efficiency_vs_voltage(all_results, label=None)
+    # plot_efficiency_vs_time(all_results, label=None)
 # #####TO DO filter by space
 
 if __name__ == "__main__":

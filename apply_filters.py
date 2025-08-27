@@ -4,6 +4,7 @@ from filters import  apply_rpc_offsets
 from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_XY
 
 import numpy as np
+import pandas as pd
 
 def apply_filters(data, rpc, all_rpc_results, raw_events=None, verbose=True):       
     if verbose:
@@ -14,21 +15,23 @@ def apply_filters(data, rpc, all_rpc_results, raw_events=None, verbose=True):
     if verbose:
         print(f"Events passing RPC{rpc} filter: {np.sum(mask1)} / {len(mask1)}")
     data = data[mask1]
-
-    # find Qmax strips
-    mask2 = find_Qmax_strips(data, rpc)
+    # print(data.head())
+    # # find Qmax strips
+    preprocessed_data, mask2 = find_Qmax_strips(data, rpc)
     if verbose:
         print(f"After finding Qmax strips: {np.sum(mask2)} / {len(mask2)}")
-    data = data[mask2]
+    preprocessed_data = pd.concat([preprocessed_data, data], axis=1)
+    preprocessed_data = preprocessed_data[mask2]
+
 
     # results
-    final_data = calculate_Q_T(data, rpc)
+    processed_data = calculate_Q_T(preprocessed_data, rpc)
+    processed_data = pd.concat([preprocessed_data, processed_data], axis=1)
 
-    results = calculate_parameters(final_data, raw_events, rpc, verbose=0)
-    if verbose and f'mean_HV_RPC{rpc}' in results:
-        print(results[f'mean_HV_RPC{rpc}'])
-    all_rpc_results.update(results)
+    run_parameters = calculate_parameters(processed_data, raw_events, rpc, verbose=0)
 
-    calculate_XY(final_data, rpc)
+    #all_rpc_results.update(run_parameters)
+
+    final_data, XY_data = calculate_XY(processed_data, rpc)
     
-    return data
+    return final_data, XY_data, processed_data, run_parameters

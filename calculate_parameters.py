@@ -38,14 +38,17 @@ def calculate_Q_T(data, rpc):
     Q = (qfmax + qbmax) / 2
     Q[ qfmax.isna() | qbmax.isna() ] = np.nan
 
-    # Save results back into DataFrame
-    data[f"T_RPC{rpc}"] = T
-    data[f"Q_RPC{rpc}"] = Q
-    data[f"Yraw_RPC{rpc}"] = Yraw
-    data[f"Xraw_RPC{rpc}"] = Xraw
-    data[f"EBtime_RPC{rpc}"] = ebtime
+    # Save results back to DataFrame
+    df = pd.DataFrame({
+        f"T_RPC{rpc}": T,
+        f"Q_RPC{rpc}": Q,
+        f"Yraw_RPC{rpc}": Yraw,
+        f"Xraw_RPC{rpc}": Xraw,
+        f"EBtime_RPC{rpc}": ebtime
+    })
 
-    return data
+    return df
+   
 
 def matlab_datenum_to_datetime(matlab_datenum):
     # MATLAB datenum starts at year 0, Python datetime starts at 0001-01-01
@@ -54,8 +57,7 @@ def matlab_datenum_to_datetime(matlab_datenum):
     python_datetime = datetime.fromordinal(days - 366) + timedelta(days=frac)
     return python_datetime
 
-import pandas as pd
-import numpy as np
+
 
 def calculate_parameters(df, raw_events, rpc, hv_folder=None, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
@@ -400,14 +402,19 @@ def calculate_XY(data, rpc):
     # 2D histogram-like plots
     XY, XY_Qmean, XY_Qmedian, XY_ST = strips2Dplots(Xmm, Ymm, Q, XRange, YRange, STLevel)
 
-    # Store results in DataFrame
-    data[f"Xmm_RPC{rpc}"]       = Xmm
-    data[f"Ymm_RPC{rpc}"]       = Ymm
-    data[f"XY_RPC{rpc}"]        = XY
-    data[f"XY_Qmean_RPC{rpc}"]  = XY_Qmean
-    data[f"XY_Qmedian_RPC{rpc}"]= XY_Qmedian
-    data[f"XY_ST_RPC{rpc}"]     = XY_ST
+    df = pd.DataFrame({ 
+        f"Xmm_RPC{rpc}" : Xmm, 
+        f"Ymm_RPC{rpc}" : Ymm, 
+    })
 
-    return data
+
+    XY_data = {
+        f"XY_RPC{rpc}": XY,
+        f"XY_Qmean_RPC{rpc}": XY_Qmean,
+        f"XY_Qmedian_RPC{rpc}": XY_Qmedian,
+        f"XY_ST_RPC{rpc}": XY_ST
+    }
+
+    return df, XY_data
 
 

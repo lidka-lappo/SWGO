@@ -34,9 +34,7 @@ def trigger_filter_scint(data):
         return pd.Series([False]*len(data))
 
 
-import pandas as pd
-import numpy as np
-
+###############################################################
 def filter_rpc(data, rpc):
     qf_key = f"QF_RPC{rpc}"
     qb_key = f"QB_RPC{rpc}"
@@ -61,11 +59,13 @@ def filter_rpc(data, rpc):
         # Replace negative charges with NaN
         QF = QF.mask(QF < 0)
         QB = QB.mask(QB < 0)
-
+    
         # Mask charges where times are invalid (TF or TB == 0)
-        mask_time = (TF != 0) & (TB != 0)
+        mask_time = (TF.values != 0) & (TB.values != 0)
         QF = QF.where(mask_time)
         QB = QB.where(mask_time)
+
+        
 
         # Filtering conditions
         valid_qf = ~QF.isna().all(axis=1)
@@ -79,7 +79,7 @@ def filter_rpc(data, rpc):
         print(f"Missing expected RPC{rpc} data column: {e}")
         return pd.Series([False] * len(data), index=data.index)
 
-
+#############################################################
 
 def find_Qmax_strips(data, rpc):
     qf_key = f"QF_RPC{rpc}"
@@ -89,44 +89,41 @@ def find_Qmax_strips(data, rpc):
     
     try:
         # Expand array columns into separate columns
-        QF = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)])
-        QB = pd.DataFrame(data[qb_key].tolist(), columns=[f"QB{i}" for i in range(4)])
-        TF = pd.DataFrame(data[tf_key].tolist(), columns=[f"TF{i}" for i in range(4)])
-        TB = pd.DataFrame(data[tb_key].tolist(), columns=[f"TB{i}" for i in range(4)])
+        QF = pd.DataFrame(data[qf_key].tolist(), index=data.index, columns=[f"QF{i}" for i in range(4)])
+        QB = pd.DataFrame(data[qb_key].tolist(), index=data.index, columns=[f"QB{i}" for i in range(4)])
+        TF = pd.DataFrame(data[tf_key].tolist(), index=data.index, columns=[f"TF{i}" for i in range(4)])
+        TB = pd.DataFrame(data[tb_key].tolist(), index=data.index, columns=[f"TB{i}" for i in range(4)])
 
-        # Replace negative charges with NaN
-        QF = QF.mask(QF < 0)
-        QB = QB.mask(QB < 0)
+        
 
-        # Mask out strips where timing is zero
-        mask_time = (TF != 0) & (TB != 0)
-        QF = QF.where(mask_time)
-        QB = QB.where(mask_time)
+        def get_max_and_index(df):
+            qmax = df.max(axis=1)
+            xmax = df.idxmax(axis=1).str.extract(r'(\d+)')
+            xmax = xmax[0].fillna(-1).astype(int)
+            return qmax, xmax
 
-        # QF max and index
-        QFmax = QF.max(axis=1)
-        XFmax = QF.idxmax(axis=1).str.extract('(\d+)').astype(int)
-        XFmax = XFmax[0].fillna(-1).astype(int)
+        QFmax, XFmax = get_max_and_index(QF)
+        QBmax, XBmax = get_max_and_index(QB)
 
-        # QB max and index
-        QBmax = QB.max(axis=1)
-        XBmax = QB.idxmax(axis=1).str.extract('(\d+)').astype(int)
-        XBmax = XBmax[0].fillna(-1).astype(int)
+        #print(XFmax.head())
+        valid_qfmax = ~QFmax.isna()
+        valid_qbmax = ~QBmax.isna()
+        valid_front_equal_back = (XFmax == XBmax)
 
-        # Final valid row condition
-        valid_rows = (
-            QFmax.notna() &
-            QBmax.notna() &
-            mask_time.any(axis=1)
-            # & (XFmax == XBmax)  # optional check
-        )
+    
 
         # Save results back to DataFrame
-        data[f"QFmax_RPC{rpc}"] = QFmax
-        data[f"QBmax_RPC{rpc}"] = QBmax
-        data[f"Xmax_RPC{rpc}"] = XFmax
+        df = pd.DataFrame({
+            f"QFmax_RPC{rpc}": QFmax,
+            f"QBmax_RPC{rpc}": QBmax,
+            f"Xmax_RPC{rpc}": XFmax,
+            #f"XBmax_RPC{rpc}": XBmax
+        })
+                # Filtering conditions
+        valid_idx = valid_qfmax & valid_qbmax &  valid_front_equal_back
 
-        return valid_rows
+        return df, valid_idx
+
 
     except KeyError as e:
         print(f"Missing expected data column: {e}")
