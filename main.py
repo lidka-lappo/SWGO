@@ -8,7 +8,7 @@ from plots import plot_hist_Q, plot_hist_T, plot_diffT, plot_heatmap, plot_effic
 from plots import plot_volatage_vs_time, plot_temp_vs_time, plot_humidity_vs_time, plot_pressure_vs_time
 from plots import plot_efficiency_vs_reduced_field
 
-from apply_filters import apply_filters
+from apply_filters import proccess_data
 from filters import trigger_filter_scint
 from filters import apply_rpc_offsets
 
@@ -76,10 +76,10 @@ def main():
 
         all_rpc_results = {}
         data_without_filters = data.copy()
+        #
 
         for rpc in range(1, n_of_rpcs + 1):
-            print(data.shape)
-            final_data, XY_data, processed_data, run_parameters = apply_filters(data, rpc, all_rpc_results, raw_events, verbose=True)
+            final_data, XY_data, run_parameters = proccess_data(data, rpc, all_rpc_results, raw_events, verbose=True)
             all_rpc_results.update(run_parameters)
             # plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
             # plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")

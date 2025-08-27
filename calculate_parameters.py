@@ -188,148 +188,7 @@ def calculate_parameters(df, raw_events, rpc, hv_folder=None, verbose=False):
     return pd.DataFrame([results])
 
 
-# def calculate_parameters(data, raw_events, rpc, hv_folder=None, verbose=False):
-#     general_config = load_general_config("lookUpTable_general.txt")
-#     strTh = general_config["general"]["streamer_threshold"]
-
-#     Q = data[f"Q_RPC{rpc}"]
-#     T = data[f"T_RPC{rpc}"]
-#     EBtime = data[f'EBtime_RPC{rpc}']
-
-#     # Convert MATLAB datenum to datetime for start and end
-#     t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
-#     t_end   = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
-
-#     # Calculate efficiency
-#     Events = np.sum(~np.isnan(T))
-#     efficiency = Events / raw_events if raw_events > 0 else np.nan
-#     efficiency_error = np.sqrt(efficiency * (1 - efficiency) / raw_events) if raw_events > 0 else np.nan
-
-#     # Filter Q values
-#     Qvalid = Q[(Q < 10000) & (~np.isnan(Q))]
-#     Qvalid_noST = Q[(Q < strTh) & (~np.isnan(Q))]
-
-#     # With streamers
-#     Qmean = np.nanmean(Qvalid) if len(Qvalid) > 0 else np.nan
-#     Qstd = np.nanstd(Qvalid) if len(Qvalid) > 0 else np.nan
-#     err_Qmean = Qstd / np.sqrt(len(Qvalid)) if len(Qvalid) > 0 else np.nan
-
-#     Qmedian = np.nanmedian(Qvalid) if len(Qvalid) > 0 else np.nan
-#     err_Qmedian = np.nanmedian(np.abs(Qvalid - Qmedian)) if len(Qvalid) > 0 else np.nan
-
-#     # Without streamers
-#     Qmean_noST = np.nanmean(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
-#     Qstd_noST = np.nanstd(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
-#     err_Qmean_noST = Qstd_noST / np.sqrt(len(Qvalid_noST)) if len(Qvalid_noST) > 0 else np.nan
-
-#     Qmedian_noST = np.nanmedian(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
-#     err_Qmedian_noST = np.nanmedian(np.abs(Qvalid_noST - Qmedian_noST)) if len(Qvalid_noST) > 0 else np.nan
-
-#     # Streamer fraction
-#     try:
-#         total_valid_events = np.sum(~np.isnan(Q))
-#         streamer_events = np.sum(Q > strTh)
-#         ST = 100 * streamer_events / total_valid_events
-#         err_ST = 100 * np.sqrt((ST/100) * (1 - ST/100) / total_valid_events)
-#     except ZeroDivisionError:
-#         ST = np.nan
-#         err_ST = np.nan
-
-#     # ===== Get mean HV in time range =====
-    
-#     mean_HV = np.nan
-   
-#     df_hv = read_hv(
-#         "hv",
-#         start_date=t_start.strftime("%Y-%m-%d"),
-#         end_date=t_end.strftime("%Y-%m-%d")
-#     )
-
-#     # Filter exact time range
-#     df_hv = df_hv.loc[(df_hv.index >= t_start) & (df_hv.index <= t_end)]
-
-#     #if not df_hv.empty:
-#     #    cols_to_avg = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
-#     #    mean_HV = df_hv[cols_to_avg].mean().mean()
-#     if not df_hv.empty:
-#         cols_to_sum = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
-#         mean_HV = (df_hv[cols_to_sum].sum(axis=1)).mean()
-
-#       # ===== Get Temperature, Humidity and Pressure in time range =====
-    
-#     mean_Temp = np.nan
-#     mean_Hum = np.nan
-#     mean_Press = np.nan
-   
-#     df_thp = read_thp(
-#         "thp",
-#         start_date=t_start.strftime("%Y-%m-%d"),
-#         end_date=t_end.strftime("%Y-%m-%d")
-#     )
-
-#     # Filter exact time range
-#     df_thp = df_thp.loc[(df_thp.index >= t_start) & (df_thp.index <= t_end)]
-
-#     def no_outliers(row, min_val, max_val):
-#         values = row.values.astype(float)
-#         #q1, q3 = np.percentile(values, [25, 75])   # quartiles
-#         #iqr = q3 - q1
-#         #lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-#         #filtered = [v for v in values if lower <= v <= upper and min_val <= v <= max_val]  # remove outliers
-#         filtered = [v for v in values if min_val <= v <= max_val]  # remove outliers
-#         return np.mean(filtered)
-
-#     if not df_thp.empty:
-#         cols_T = [f"T1", "T2", "T3", "T4"]
-#         row_T_means = df_thp[cols_T].apply(no_outliers, axis=1, min_val=10, max_val=50)
-#         mean_Temp = row_T_means.mean(skipna=True)
-
-#         cols_H = [f"h1", "h2"]
-#         mean_H_rows = df_thp[cols_H].apply(no_outliers, axis=1, min_val=0, max_val=100)
-#         mean_Hum = mean_H_rows.mean(skipna=True)
-#         print(mean_Hum)
-
-#         cols_P = [f"p1", "p2"]
-#         mean_P_rows = df_thp[cols_P].apply(no_outliers, axis=1, min_val=400, max_val=1200)
-#         mean_Press = mean_P_rows.mean(skipna=True)  
-
-#     results = {
-#         f"time_start_RPC{rpc}": t_start,
-#         f"time_end_RPC{rpc}": t_end,
-#         f'efficiency_RPC{rpc}': efficiency,
-#         f'efficiency_error_RPC{rpc}': efficiency_error,
-#         f'Qmean_RPC{rpc}': Qmean,
-#         f'Qmean_error_RPC{rpc}': err_Qmean,
-#         f'Qmedian_RPC{rpc}': Qmedian,
-#         f'Qmedian_error_RPC{rpc}': err_Qmedian,
-#         f'Qmean_noST_RPC{rpc}': Qmean_noST,
-#         f'Qmean_noST_error_RPC{rpc}': err_Qmean_noST,
-#         f'Qmedian_noST_RPC{rpc}': Qmedian_noST,
-#         f'Qmedian_noST_error_RPC{rpc}': err_Qmedian_noST,
-#         f'streamer_fraction_RPC{rpc}': ST,
-#         f'streamer_fraction_error_RPC{rpc}': err_ST,
-#         f'mean_HV_RPC{rpc}': mean_HV,
-#         f'mean_Temp_RPC{rpc}': mean_Temp,
-#         f'mean_Hum_RPC{rpc}': mean_Hum,
-#         f'mean_Press_RPC{rpc}': mean_Press
-#     }
-
-#     if verbose:
-#         print(f"RPC{rpc} results:")
-#         print(f"  Time range: {t_start} -> {t_end}")
-#         print(f"  Efficiency: {efficiency:.4f} ± {efficiency_error:.4f}")
-#         print(f"  Qmean: {Qmean:.2f} ± {err_Qmean:.2f}")
-#         print(f"  Qmean noST: {Qmean_noST:.2f} ± {err_Qmean_noST:.2f}")
-#         print(f"  Qmedian: {Qmedian:.2f} ± {err_Qmedian:.2f}")
-#         print(f"  Qmedian noST: {Qmedian_noST:.2f} ± {err_Qmedian_noST:.2f}")
-#         print(f"  Streamer fraction: {ST:.2f}% ± {err_ST:.2f}%")
-#         print(f"  Mean HV in range: {mean_HV:.2f}" if not np.isnan(mean_HV) else "  Mean HV: No data")
-
-#     return results
-
-
-###############################################################
-
+####################################3
 
 
 
@@ -382,9 +241,13 @@ def calculate_XY(data, rpc):
     YCenters = rpc_params["ycenters"]
 
     # Extract columns
+
     Yraw = data[f"Yraw_RPC{rpc}"].to_numpy()
     Xraw = data[f"Xraw_RPC{rpc}"].to_numpy()
     Q    = data[f"Q_RPC{rpc}"].to_numpy()
+    T    = data[f"T_RPC{rpc}"].to_numpy()
+    ebtime = data[f"EBtime_RPC{rpc}"].to_numpy()
+
 
     # Calibrate Y: subtract Y-centers depending on which strip fired
     Ycal = Yraw.copy()
@@ -405,6 +268,10 @@ def calculate_XY(data, rpc):
     df = pd.DataFrame({ 
         f"Xmm_RPC{rpc}" : Xmm, 
         f"Ymm_RPC{rpc}" : Ymm, 
+        f"Q_RPC{rpc}" : Q, 
+        f"T_RPC{rpc}" : T, 
+        f"EBtime_RPC{rpc}" : ebtime
+
     })
 
 

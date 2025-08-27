@@ -117,7 +117,7 @@ def find_Qmax_strips(data, rpc):
             f"QFmax_RPC{rpc}": QFmax,
             f"QBmax_RPC{rpc}": QBmax,
             f"Xmax_RPC{rpc}": XFmax,
-            #f"XBmax_RPC{rpc}": XBmax
+            f"XBmax_RPC{rpc}": XBmax
         })
                 # Filtering conditions
         valid_idx = valid_qfmax & valid_qbmax &  valid_front_equal_back
