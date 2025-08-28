@@ -6,7 +6,7 @@ from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_
 import numpy as np
 import pandas as pd
 
-def proccess_data(data, rpc, all_rpc_results, raw_events=None, verbose=True):       
+def proccess_data(data, rpc, raw_events=None, verbose=True):       
     if verbose:
         print(f"\n=== Processing RPC{rpc} ===")
 
@@ -31,6 +31,7 @@ def proccess_data(data, rpc, all_rpc_results, raw_events=None, verbose=True):
     #processed_data = pd.concat([preprocessed_data, processed_data], axis=1)
 
     run_parameters = calculate_parameters(processed_data, raw_events, rpc, verbose=0)
+
 
     #all_rpc_results.update(run_parameters)
 

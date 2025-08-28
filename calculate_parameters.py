@@ -59,7 +59,7 @@ def matlab_datenum_to_datetime(matlab_datenum):
 
 
 
-def calculate_parameters(df, raw_events, rpc, hv_folder=None, verbose=False):
+def calculate_parameters(df, raw_events, rpc, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
     strTh = general_config["general"]["streamer_threshold"]
 
@@ -153,24 +153,24 @@ def calculate_parameters(df, raw_events, rpc, hv_folder=None, verbose=False):
 
     # Collect results
     results = {
-        f"time_start_RPC{rpc}": t_start,
-        f"time_end_RPC{rpc}": t_end,
-        f'efficiency_RPC{rpc}': efficiency,
-        f'efficiency_error_RPC{rpc}': efficiency_error,
-        f'Qmean_RPC{rpc}': Qmean,
-        f'Qmean_error_RPC{rpc}': err_Qmean,
-        f'Qmedian_RPC{rpc}': Qmedian,
-        f'Qmedian_error_RPC{rpc}': err_Qmedian,
-        f'Qmean_noST_RPC{rpc}': Qmean_noST,
-        f'Qmean_noST_error_RPC{rpc}': err_Qmean_noST,
-        f'Qmedian_noST_RPC{rpc}': Qmedian_noST,
-        f'Qmedian_noST_error_RPC{rpc}': err_Qmedian_noST,
-        f'streamer_fraction_RPC{rpc}': ST,
-        f'streamer_fraction_error_RPC{rpc}': err_ST,
-        f'mean_HV_RPC{rpc}': mean_HV,
-        f'mean_Temp_RPC{rpc}': mean_Temp,
-        f'mean_Hum_RPC{rpc}': mean_Hum,
-        f'mean_Press_RPC{rpc}': mean_Press
+        f"time_start": t_start,
+        f"time_end": t_end,
+        f'efficiency': efficiency,
+        f'efficiency_error': efficiency_error,
+        f'Qmean': Qmean,
+        f'Qmean_error': err_Qmean,
+        f'Qmedian': Qmedian,
+        f'Qmedian_error': err_Qmedian,
+        f'Qmean_noST': Qmean_noST,
+        f'Qmean_noST_error': err_Qmean_noST,
+        f'Qmedian_noST': Qmedian_noST,
+        f'Qmedian_noST_error': err_Qmedian_noST,
+        f'streamer_fraction': ST,
+        f'streamer_fraction_error': err_ST,
+        f'mean_HV': mean_HV,
+        f'mean_Temp': mean_Temp,
+        f'mean_Hum': mean_Hum,
+        f'mean_Press': mean_Press
     }
 
     if verbose:
