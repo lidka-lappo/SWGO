@@ -19,7 +19,7 @@ from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_
 from datetime import datetime, timedelta
 import re
 import pandas as pd
-
+from save import save_processed_data
 '''
 
 detector =  1, 2, 3, "scint", "crew"
@@ -83,7 +83,7 @@ def main():
         #
 
         for rpc in range(1, n_of_rpcs + 1):
-            final_data, XY_data, run_parameters = proccess_data(data, rpc, raw_events, verbose=True)
+            final_data, XY_data, run_parameters = proccess_data(data, rpc, raw_events, verbose=False)
             #all_rpc_results.update(run_parameters)
             # plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
             # plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
@@ -91,18 +91,19 @@ def main():
             # plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold") 
             run_parameters["rpc"] = rpc
             results.append(run_parameters)
+        save_processed_data(final_data, file_path)
 
         # Concatenate all into one big DataFrame
         all_results = pd.concat(results, ignore_index=True)
         #print(all_results.head())      
 
-    plot_efficiency_vs_reduced_field(all_results)
-    plot_voltage_vs_time(all_results)
-    plot_temp_vs_time(all_results)
-    plot_humidity_vs_time(all_results)
-    plot_pressure_vs_time(all_results)
-    plot_efficiency_vs_voltage(all_results)
-    plot_efficiency_vs_time(all_results)
+    # plot_efficiency_vs_reduced_field(all_results)
+    # plot_voltage_vs_time(all_results)
+    # plot_temp_vs_time(all_results)
+    # plot_humidity_vs_time(all_results)
+    # plot_pressure_vs_time(all_results)
+    # plot_efficiency_vs_voltage(all_results)
+    # plot_efficiency_vs_time(all_results)
 # #####TO DO filter by space
 
 if __name__ == "__main__":
