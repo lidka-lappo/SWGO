@@ -84,3 +84,12 @@ def load_rpc_parameters(filepath: str) -> dict:
             processed[key] = entries[0]  # single list
 
     return processed
+
+
+
+#param = load_general_config("lookUpTable_general.txt")
+#print(param)
+
+
+# rpc_params = load_rpc_parameters(f"lookUpTable_RPC{2}.txt")
+# print(rpc_params)

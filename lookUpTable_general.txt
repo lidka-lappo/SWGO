@@ -1,5 +1,5 @@
 [general]
-n_of_rpcs: 3
+n_of_rpcs: 4
 pitch: 60
 streamer_threshold: 100
 strips: 4

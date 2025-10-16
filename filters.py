@@ -142,6 +142,8 @@ def apply_rpc_offsets(data, rpc_params, rpc):
     x_offsets = offsets[:, 0]
     y_offsets = offsets[:, 1]
 
+
+
     # Convert array columns to separate columns
     QF_df = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)])
     QB_df = pd.DataFrame(data[qb_key].tolist(), columns=[f"QB{i}" for i in range(4)])
