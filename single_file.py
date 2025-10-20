@@ -8,6 +8,7 @@ from apply_filters import apply_rpc_offsets
 import numpy as np
 from filters import filter_rpc, find_Qmax_strips
 from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_XY
+from calculate_parameters import generate_XY_maps, calculate_XY_positions
 import pandas as pd
 import os
 
@@ -48,28 +49,39 @@ def at_least_two_rpcs_fired(rpc_data):
     return filtered
 
 
+import os
+import numpy as np
+import pandas as pd
+
 def save_rpc_results(rpc, run_parameters, final_data, output_dir="results"):
     """
     Save the run parameters and final data for one RPC to .txt files.
+    If the final_data file already exists, new results are appended.
     """
-    # Ensure output folder exists
     os.makedirs(output_dir, exist_ok=True)
 
     # --- Save run parameters ---
     run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
-    with open(run_param_file, 'w') as f:
+    with open(run_param_file, 'a') as f:  # append mode
+        f.write("=== New Run ===\n")
         for key, val in run_parameters.items():
             f.write(f"{key}: {val}\n")
-    print(f"Saved run parameters to {run_param_file}")
+        f.write("\n")
+    print(f"Appended run parameters to {run_param_file}")
 
-    # --- Save final data ---
+    # --- Save or append final data ---
     final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
 
     if isinstance(final_data, pd.DataFrame):
-        final_data.to_csv(final_data_file, sep='\t', index=False)
+        # Append without headers if file exists
+        header = not os.path.exists(final_data_file)
+        final_data.to_csv(final_data_file, sep='\t', index=False, mode='a', header=header)
     else:
-        np.savetxt(final_data_file, np.array(final_data), fmt='%s', delimiter='\t')
-    print(f"Saved final data to {final_data_file}")
+        # Convert to numpy array and append
+        with open(final_data_file, 'a') as f:
+            np.savetxt(f, np.array(final_data), fmt='%s', delimiter='\t')
+    print(f"Appended final data to {final_data_file}")
+
 
 
 
@@ -149,7 +161,15 @@ def single_file(file_path):
         #print(de_rpc.head())
         run_parameters = calculate_parameters(de_rpc, raw_events, rpc, verbose=0)
 
-        final_data, XY_data = calculate_XY(de_rpc, rpc)
+        final_data = calculate_XY_positions(de_rpc, rpc)
+        XY_data = generate_XY_maps(final_data, rpc)
+
+        #final_data, XY_data = calculate_XY(de_rpc, rpc)
+
+        # plots. plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
+        # plots. plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
+        # plots. plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
+        # plots. plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")   
         
         save_rpc_results(rpc, run_parameters, final_data, output_dir="results")
         # Optional: store or process de_rpc further
@@ -159,10 +179,81 @@ def single_file(file_path):
 
     return 0
 
+import os
+import pandas as pd
 
-file_path = "/home/lidka/SWGO/4RPC/sest25287163557.mat"
-n = single_file(file_path)
-print(n)
+def load_rpc_results(rpc, output_dir="results"):
+    """
+    Load the run parameters and final data for one RPC.
+    Handles multiple appended runs.
+    Returns:
+        run_parameters_list: list of dicts, one per run
+        final_data: pandas DataFrame
+    """
+    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
+    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
+
+    run_parameters_list = []
+
+    # --- Load run parameters ---
+    if os.path.exists(run_param_file):
+        with open(run_param_file, 'r') as f:
+            content = f.read().strip()
+
+        # Split different runs if multiple blocks exist
+        blocks = [block.strip() for block in content.split("=== New Run ===") if block.strip()]
+        for block in blocks:
+            run_params = {}
+            for line in block.splitlines():
+                if ":" in line:
+                    key, val = line.split(":", 1)
+                    run_params[key.strip()] = val.strip()
+            run_parameters_list.append(run_params)
+    else:
+        print(f"Warning: {run_param_file} not found.")
+        run_parameters_list = []
+
+    # --- Load final data ---
+    if os.path.exists(final_data_file):
+        try:
+            final_data = pd.read_csv(final_data_file, sep='\t')
+        except Exception as e:
+            print(f"Could not load as DataFrame: {e}")
+            final_data = None
+    else:
+        print(f"Warning: {final_data_file} not found.")
+        final_data = None
+
+    return run_parameters_list, final_data
+
+
+rpc=4
+runs, final_data = load_rpc_results(rpc)
+print("Number of runs:", len(runs))
+print("First run parameters:", runs[0])
+# print("Final data (first 5 rows):")
+# print(final_data.head())
+
+
+general_config = load_general_config("lookUpTable_general.txt")
+XRange = general_config["ranges"]["XRange"]
+YRange = general_config["ranges"]["YRange"]
+
+XY_data = generate_XY_maps(final_data, rpc)
+
+#final_data, XY_data = calculate_XY(de_rpc, rpc)
+
+plots. plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
+plots. plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
+plots. plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
+plots. plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")
+
+#file_path = "/home/lidka/SWGO/4RPC/sest25287163557.mat"
+#file_path = "/home/lidka/SWGO/4RPC/sest25287163815.mat"
+#file_path = "/home/lidka/SWGO/4RPC/sest25287164033.mat"
+#file_path = "/home/lidka/SWGO/4RPC/sest25287164250.mat"
+#n = single_file(file_path)
+#print(n)
 
 # Index(['EBtime', 'triggerType', 'QF_RPC1', 'QB_RPC1', 'TF_RPC1', 'TB_RPC1',
 #        'QF_RPC2', 'QB_RPC2', 'TF_RPC2', 'TB_RPC2', 'QF_RPC3', 'QB_RPC3',

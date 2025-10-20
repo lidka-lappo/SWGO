@@ -226,6 +226,75 @@ def strips2Dplots(X, Y, Q, binsX, binsY, STLevel, useBelowSTOnly=True):
 
 
 
+def calculate_XY_positions(data, rpc):
+    """
+    Calibrate and calculate X, Y positions (in mm) and return as a DataFrame.
+    """
+    # Load configs
+    general_config = load_general_config("lookUpTable_general.txt")
+    vprop   = general_config["general"]["vprop"]
+    pitch   = general_config["general"]["pitch"]
+    strips  = general_config["general"]["strips"]
+
+    rpc_params = load_rpc_parameters(f"lookUpTable_RPC{rpc}.txt")
+    YCenters = rpc_params["ycenters"]
+
+    # Extract columns
+    Yraw = data[f"Yraw_RPC{rpc}"].to_numpy()
+    Xraw = data[f"Xraw_RPC{rpc}"].to_numpy()
+    Q    = data[f"Q_RPC{rpc}"].to_numpy()
+    T    = data[f"T_RPC{rpc}"].to_numpy()
+    ebtime = data[f"EBtime_RPC{rpc}"].to_numpy()
+
+    # --- Calibrate Y ---
+    Ycal = Yraw.copy()
+    for i in range(strips):
+        mask = (Xraw == i + 1)
+        Ycal[mask] = Yraw[mask] - YCenters[i]
+
+    # --- Calculate X, Y in mm ---
+    Xmm = ((Xraw - 0.5) * pitch) + ((np.random.rand(len(Xraw)) * pitch) - (pitch / 2))
+    Ymm = Ycal * vprop
+
+    # --- Build DataFrame ---
+    df = pd.DataFrame({
+        f"Xmm_RPC{rpc}": Xmm,
+        f"Ymm_RPC{rpc}": Ymm,
+        f"Q_RPC{rpc}": Q,
+        f"T_RPC{rpc}": T,
+        f"EBtime_RPC{rpc}": ebtime
+    })
+
+    return df
+
+
+def generate_XY_maps(df, rpc):
+    """
+    Generate XY-related 2D histograms and summary statistics.
+    """
+    general_config = load_general_config("lookUpTable_general.txt")
+    strTh  = general_config["general"]["streamer_threshold"]
+    XRange = general_config["ranges"]["XRange"]
+    YRange = general_config["ranges"]["YRange"]
+
+    Xmm = df[f"Xmm_RPC{rpc}"].to_numpy()
+    Ymm = df[f"Ymm_RPC{rpc}"].to_numpy()
+    Q   = df[f"Q_RPC{rpc}"].to_numpy()
+
+    # --- Generate 2D plots and maps ---
+    XY, XY_Qmean, XY_Qmedian, XY_ST = strips2Dplots(Xmm, Ymm, Q, XRange, YRange, strTh)
+
+    XY_data = {
+        f"XY_RPC{rpc}": XY,
+        f"XY_Qmean_RPC{rpc}": XY_Qmean,
+        f"XY_Qmedian_RPC{rpc}": XY_Qmedian,
+        f"XY_ST_RPC{rpc}": XY_ST
+    }
+
+    return XY_data
+
+
+
 def calculate_XY(data, rpc):
 
     # Load configs
