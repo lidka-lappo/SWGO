@@ -167,10 +167,10 @@ def calculate_parameters(df, raw_events, rpc, verbose=False):
         f'Qmedian_noST_error': err_Qmedian_noST,
         f'streamer_fraction': ST,
         f'streamer_fraction_error': err_ST,
-        f'mean_HV': mean_HV,
-        f'mean_Temp': mean_Temp,
-        f'mean_Hum': mean_Hum,
-        f'mean_Press': mean_Press
+        # f'mean_HV': mean_HV,
+        # f'mean_Temp': mean_Temp,
+        # f'mean_Hum': mean_Hum,
+        # f'mean_Press': mean_Press
     }
 
     if verbose:

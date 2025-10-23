@@ -53,39 +53,111 @@ import os
 import numpy as np
 import pandas as pd
 
-def save_rpc_results(rpc, run_parameters, final_data, output_dir="results"):
+import os
+import numpy as np
+import pandas as pd
+
+# Global variables — one state per RPC
+current_output_state = {
+    1: {"timestamp": None, "rows": 0},
+    2: {"timestamp": None, "rows": 0},
+    3: {"timestamp": None, "rows": 0},
+    4: {"timestamp": None, "rows": 0},
+}
+
+def save_rpc_results(rpc, run_parameters, final_data, file_path, output_dir="results", max_rows=1000):
     """
-    Save the run parameters and final data for one RPC to .txt files.
-    If the final_data file already exists, new results are appended.
+    Save run parameters and final data for one RPC.
+    Each output file has up to `max_rows` rows and is named using the timestamp (yydoyhhmmss)
+    from the `.mat` file that started it.
+    When full, the next file starts with the next `.mat` file's timestamp.
     """
+
+    # Pick the correct RPC state dictionary
+    state = current_output_state[rpc]
+
     os.makedirs(output_dir, exist_ok=True)
 
+    # Extract timestamp from current input file (e.g. "sest25287163557.mat" → "25287163557")
+    timestamp = os.path.splitext(os.path.basename(file_path))[0][4:]
+
+    # --- Decide which file to write to ---
+    if state["timestamp"] is None or state["rows"] >= max_rows:
+        state["timestamp"] = timestamp
+        state["rows"] = 0
+
+    out_timestamp = state["timestamp"]
+    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}_{out_timestamp}.txt")
+
     # --- Save run parameters ---
-    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
-    with open(run_param_file, 'a') as f:  # append mode
+    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}_{out_timestamp}.txt")
+    with open(run_param_file, 'a') as f:
         f.write("=== New Run ===\n")
         for key, val in run_parameters.items():
             f.write(f"{key}: {val}\n")
         f.write("\n")
     print(f"Appended run parameters to {run_param_file}")
 
-    # --- Save or append final data ---
-    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
-
+    # --- Prepare data ---
     if isinstance(final_data, pd.DataFrame):
-        # Append without headers if file exists
-        header = not os.path.exists(final_data_file)
+        rows_to_write = len(final_data)
+    else:
+        final_data = np.array(final_data)
+        rows_to_write = final_data.shape[0] if final_data.ndim > 1 else 1
+
+    # --- Write data ---
+    header = not os.path.exists(final_data_file)
+    if isinstance(final_data, pd.DataFrame):
         final_data.to_csv(final_data_file, sep='\t', index=False, mode='a', header=header)
     else:
-        # Convert to numpy array and append
         with open(final_data_file, 'a') as f:
             np.savetxt(f, np.array(final_data), fmt='%s', delimiter='\t')
-    print(f"Appended final data to {final_data_file}")
+
+    # Update state
+    state["rows"] += rows_to_write
+    print(f"Appended {rows_to_write} rows to {final_data_file}")
+
+    # --- If full, reset for next timestamp ---
+    if state["rows"] >= max_rows:
+        print(f"✅ File {final_data_file} reached {state['rows']} rows. Next file will use new timestamp.")
+        state["timestamp"] = None
+        state["rows"] = 0
+
+
+
+# def save_rpc_results(rpc, run_parameters, final_data, output_dir="results"):
+#     """
+#     Save the run parameters and final data for one RPC to .txt files.
+#     If the final_data file already exists, new results are appended.
+#     """
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     # --- Save run parameters ---
+#     run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
+#     with open(run_param_file, 'a') as f:  # append mode
+#         f.write("=== New Run ===\n")
+#         for key, val in run_parameters.items():
+#             f.write(f"{key}: {val}\n")
+#         f.write("\n")
+#     print(f"Appended run parameters to {run_param_file}")
+
+#     # --- Save or append final data ---
+#     final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
+
+#     if isinstance(final_data, pd.DataFrame):
+#         # Append without headers if file exists
+#         header = not os.path.exists(final_data_file)
+#         final_data.to_csv(final_data_file, sep='\t', index=False, mode='a', header=header)
+#     else:
+#         # Convert to numpy array and append
+#         with open(final_data_file, 'a') as f:
+#             np.savetxt(f, np.array(final_data), fmt='%s', delimiter='\t')
+#     print(f"Appended final data to {final_data_file}")
 
 
 
 
-def single_file(file_path):
+def single_file(file_path, first_file_name):
     data = read_data(file_path, verbose=0)
     if data is None:
         print("Failed to read data.")
@@ -171,7 +243,15 @@ def single_file(file_path):
         # plots. plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
         # plots. plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")   
         
-        save_rpc_results(rpc, run_parameters, final_data, output_dir="results")
+        #save_rpc_results(rpc, run_parameters, final_data, output_dir="results")
+        save_rpc_results(
+            rpc=rpc,
+            run_parameters=run_parameters,
+            final_data=final_data,
+            file_path=file_path,
+            output_dir="results",
+            max_rows=1000
+        )
         # Optional: store or process de_rpc further
         rpc_dfs[rpc - 1] = de_rpc  # update with filtered version
 
@@ -227,26 +307,41 @@ def load_rpc_results(rpc, output_dir="results"):
     return run_parameters_list, final_data
 
 
-rpc=4
-runs, final_data = load_rpc_results(rpc)
-print("Number of runs:", len(runs))
-print("First run parameters:", runs[0])
-# print("Final data (first 5 rows):")
-# print(final_data.head())
+# rpc=4
+# runs, final_data = load_rpc_results(rpc)
+# print("Number of runs:", len(runs))
+# print("First run parameters:", runs[0])
+# # print("Final data (first 5 rows):")
+# # print(final_data.head())
+
+input_files = [
+    "/home/lidka/SWGO/4RPC/sest25287163557.mat",
+    "/home/lidka/SWGO/4RPC/sest25287163815.mat",
+    "/home/lidka/SWGO/4RPC/sest25287164033.mat",
+    "/home/lidka/SWGO/4RPC/sest25287164250.mat"
+]
 
 
-general_config = load_general_config("lookUpTable_general.txt")
-XRange = general_config["ranges"]["XRange"]
-YRange = general_config["ranges"]["YRange"]
+rpc = 1
+first_file_name = input_files[0]
 
-XY_data = generate_XY_maps(final_data, rpc)
+for file_path in input_files:
+    n = single_file(file_path, first_file_name)
+
+
+
+# general_config = load_general_config("lookUpTable_general.txt")
+# XRange = general_config["ranges"]["XRange"]
+# YRange = general_config["ranges"]["YRange"]
+
+# XY_data = generate_XY_maps(final_data, rpc)
 
 #final_data, XY_data = calculate_XY(de_rpc, rpc)
 
-plots. plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
-plots. plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
-plots. plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
-plots. plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")
+# plots. plot_heatmap(XY_data[f"XY_RPC{rpc}"], XRange, YRange, rpc, "XY Hits")
+# plots. plot_heatmap(XY_data[f"XY_Qmean_RPC{rpc}"], XRange, YRange, rpc, "XY Q Mean")
+# plots. plot_heatmap(XY_data[f"XY_Qmedian_RPC{rpc}"], XRange, YRange, rpc, "XY Q Median")
+# plots. plot_heatmap(XY_data[f"XY_ST_RPC{rpc}"], XRange, YRange, rpc, "XY Streamer Threshold")
 
 #file_path = "/home/lidka/SWGO/4RPC/sest25287163557.mat"
 #file_path = "/home/lidka/SWGO/4RPC/sest25287163815.mat"
