@@ -89,6 +89,50 @@ def read_data(dataset_file: str, verbose: bool = False):
 
 
 
+def load_rpc_results(rpc, output_dir="results"):
+    """
+    Load the run parameters and final data for one RPC.
+    Handles multiple appended runs.
+    Returns:
+        run_parameters_list: list of dicts, one per run
+        final_data: pandas DataFrame
+    """
+    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
+    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
+
+    run_parameters_list = []
+
+    # --- Load run parameters ---
+    if os.path.exists(run_param_file):
+        with open(run_param_file, 'r') as f:
+            content = f.read().strip()
+
+        # Split different runs if multiple blocks exist
+        blocks = [block.strip() for block in content.split("=== New Run ===") if block.strip()]
+        for block in blocks:
+            run_params = {}
+            for line in block.splitlines():
+                if ":" in line:
+                    key, val = line.split(":", 1)
+                    run_params[key.strip()] = val.strip()
+            run_parameters_list.append(run_params)
+    else:
+        print(f"Warning: {run_param_file} not found.")
+        run_parameters_list = []
+
+    # --- Load final data ---
+    if os.path.exists(final_data_file):
+        try:
+            final_data = pd.read_csv(final_data_file, sep='\t')
+        except Exception as e:
+            print(f"Could not load as DataFrame: {e}")
+            final_data = None
+    else:
+        print(f"Warning: {final_data_file} not found.")
+        final_data = None
+
+    return run_parameters_list, final_data
+
 
 # ########################################################
 #TEST

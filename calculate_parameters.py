@@ -52,12 +52,13 @@ def calculate_Q_T(data, rpc):
 
 def matlab_datenum_to_datetime(matlab_datenum):
     # MATLAB datenum starts at year 0, Python datetime starts at 0001-01-01
-    days = int(matlab_datenum)
-    frac = matlab_datenum % 1
-    python_datetime = datetime.fromordinal(days - 366) + timedelta(days=frac)
+    # days = int(matlab_datenum)
+    # frac = matlab_datenum % 1
+    # python_datetime = datetime.fromordinal(days - 366) + timedelta(days=frac)
+    # return python_datetime
+    days = float(matlab_datenum)
+    python_datetime = datetime.fromordinal(int(days) - 366) + timedelta(days=days % 1)
     return python_datetime
-
-
 
 def calculate_parameters(df, raw_events, rpc, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
@@ -69,8 +70,24 @@ def calculate_parameters(df, raw_events, rpc, verbose=False):
     EBtime = df[f"EBtime_RPC{rpc}"].to_numpy()
 
     # Convert MATLAB datenum to datetime for start and end
-    t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
-    t_end   = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
+    # t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
+    # t_end   = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
+
+    try:
+        t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
+    except Exception as e:
+        print(f"Error converting start time: {e}")
+        t_start = None  # or fallback value
+
+    # End time: try last value, if fails, use second-to-last
+    try:
+        t_end = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
+    except Exception as e:
+        print(f"Error converting end time: {e}")
+        if len(EBtime) > 1:
+            t_end = matlab_datenum_to_datetime(EBtime[-2] + T[-2] / (24 * 3600))
+        else:
+            t_end = None
 
     # Calculate efficiency
     Events = np.sum(~np.isnan(T))

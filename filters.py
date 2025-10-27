@@ -55,6 +55,9 @@ def filter_rpc(data, rpc):
         TB = pd.DataFrame(data[tb_key].tolist(), 
                           columns=[f"TB{i}" for i in range(4)], 
                           index=data.index)
+        
+        # print(QF.dtypes)
+        # print(QF.head())
 
         # Replace negative charges with NaN
         QF = QF.mask(QF < 0)
@@ -65,7 +68,17 @@ def filter_rpc(data, rpc):
         QF = QF.where(mask_time)
         QB = QB.where(mask_time)
 
-        
+        # mask_time = (TF != 0) & (TB != 0)
+        # QF = QF.where(mask_time)
+        # QB = QB.where(mask_time)
+
+        # # Replace negative charges with NaN
+        # QF = QF.mask(QF < 0)
+        # QB = QB.mask(QB < 0)
+
+     # --- Write masked data back into the main DataFrame ---
+        data[qf_key] = QF.values.tolist()
+        data[qb_key] = QB.values.tolist()
 
         # Filtering conditions
         valid_qf = ~QF.isna().all(axis=1)
@@ -158,3 +171,31 @@ def apply_rpc_offsets(data, rpc_params, rpc):
     data[qb_key] = QB_df.values.tolist()
 
     return data
+
+def rpc_fired(TF, TB):
+    if TF is None or TB is None:
+        return False
+    return (TF != 0).any() and (TB != 0).any()
+
+
+
+def at_least_two_rpcs_fired(rpc_data):
+    fired_counts = []
+    for i in range(1, 5):  # RPC1 to RPC4
+        fired = rpc_data.apply(
+            lambda row: rpc_fired(row[f'TF_RPC{i}'], row[f'TB_RPC{i}']), axis=1
+        )
+        fired_counts.append(fired)
+
+    # Combine all RPC fired results into one DataFrame
+    fired_df = pd.concat(fired_counts, axis=1)
+    fired_df.columns = [f'RPC{i}_fired' for i in range(1, 5)]
+
+    # Count how many RPCs fired per row
+    rpc_data['num_rpc_fired'] = fired_df.sum(axis=1)
+
+    # Keep only rows with at least 2 RPCs fired
+    filtered = rpc_data[rpc_data['num_rpc_fired'] >= 3].copy()
+        
+
+    return filtered

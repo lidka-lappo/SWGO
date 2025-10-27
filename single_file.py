@@ -9,153 +9,12 @@ import numpy as np
 from filters import filter_rpc, find_Qmax_strips
 from calculate_parameters import calculate_parameters, calculate_Q_T, calculate_XY
 from calculate_parameters import generate_XY_maps, calculate_XY_positions
-import pandas as pd
-import os
+from filters import at_least_two_rpcs_fired, filter_rpc
+from save import save_rpc_results
+from readXY import load_rpc_results
 
+import pandas as pd
 import numpy as np
-import pandas as pd
-
-def rpc_fired(TF, TB):
-    if TF is None or TB is None:
-        return False
-    return (TF != 0).any() and (TB != 0).any()
-
-
-
-def at_least_two_rpcs_fired(rpc_data):
-    def rpc_fired(TF, TB):
-        if TF is None or TB is None:
-            return False
-        return (TF != 0).any() and (TB != 0).any()
-
-    fired_counts = []
-    for i in range(1, 5):  # RPC1 to RPC4
-        fired = rpc_data.apply(
-            lambda row: rpc_fired(row[f'TF_RPC{i}'], row[f'TB_RPC{i}']), axis=1
-        )
-        fired_counts.append(fired)
-
-    # Combine all RPC fired results into one DataFrame
-    fired_df = pd.concat(fired_counts, axis=1)
-    fired_df.columns = [f'RPC{i}_fired' for i in range(1, 5)]
-
-    # Count how many RPCs fired per row
-    rpc_data['num_rpc_fired'] = fired_df.sum(axis=1)
-
-    # Keep only rows with at least 2 RPCs fired
-    filtered = rpc_data[rpc_data['num_rpc_fired'] >= 2].copy()
-        
-
-    return filtered
-
-
-import os
-import numpy as np
-import pandas as pd
-
-import os
-import numpy as np
-import pandas as pd
-
-# Global variables — one state per RPC
-current_output_state = {
-    1: {"timestamp": None, "rows": 0},
-    2: {"timestamp": None, "rows": 0},
-    3: {"timestamp": None, "rows": 0},
-    4: {"timestamp": None, "rows": 0},
-}
-
-def save_rpc_results(rpc, run_parameters, final_data, file_path, output_dir="results", max_rows=1000):
-    """
-    Save run parameters and final data for one RPC.
-    Each output file has up to `max_rows` rows and is named using the timestamp (yydoyhhmmss)
-    from the `.mat` file that started it.
-    When full, the next file starts with the next `.mat` file's timestamp.
-    """
-
-    # Pick the correct RPC state dictionary
-    state = current_output_state[rpc]
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Extract timestamp from current input file (e.g. "sest25287163557.mat" → "25287163557")
-    timestamp = os.path.splitext(os.path.basename(file_path))[0][4:]
-
-    # --- Decide which file to write to ---
-    if state["timestamp"] is None or state["rows"] >= max_rows:
-        state["timestamp"] = timestamp
-        state["rows"] = 0
-
-    out_timestamp = state["timestamp"]
-    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}_{out_timestamp}.txt")
-
-    # --- Save run parameters ---
-    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}_{out_timestamp}.txt")
-    with open(run_param_file, 'a') as f:
-        f.write("=== New Run ===\n")
-        for key, val in run_parameters.items():
-            f.write(f"{key}: {val}\n")
-        f.write("\n")
-    print(f"Appended run parameters to {run_param_file}")
-
-    # --- Prepare data ---
-    if isinstance(final_data, pd.DataFrame):
-        rows_to_write = len(final_data)
-    else:
-        final_data = np.array(final_data)
-        rows_to_write = final_data.shape[0] if final_data.ndim > 1 else 1
-
-    # --- Write data ---
-    header = not os.path.exists(final_data_file)
-    if isinstance(final_data, pd.DataFrame):
-        final_data.to_csv(final_data_file, sep='\t', index=False, mode='a', header=header)
-    else:
-        with open(final_data_file, 'a') as f:
-            np.savetxt(f, np.array(final_data), fmt='%s', delimiter='\t')
-
-    # Update state
-    state["rows"] += rows_to_write
-    print(f"Appended {rows_to_write} rows to {final_data_file}")
-
-    # --- If full, reset for next timestamp ---
-    if state["rows"] >= max_rows:
-        print(f"✅ File {final_data_file} reached {state['rows']} rows. Next file will use new timestamp.")
-        state["timestamp"] = None
-        state["rows"] = 0
-
-
-
-# def save_rpc_results(rpc, run_parameters, final_data, output_dir="results"):
-#     """
-#     Save the run parameters and final data for one RPC to .txt files.
-#     If the final_data file already exists, new results are appended.
-#     """
-#     os.makedirs(output_dir, exist_ok=True)
-
-#     # --- Save run parameters ---
-#     run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
-#     with open(run_param_file, 'a') as f:  # append mode
-#         f.write("=== New Run ===\n")
-#         for key, val in run_parameters.items():
-#             f.write(f"{key}: {val}\n")
-#         f.write("\n")
-#     print(f"Appended run parameters to {run_param_file}")
-
-#     # --- Save or append final data ---
-#     final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
-
-#     if isinstance(final_data, pd.DataFrame):
-#         # Append without headers if file exists
-#         header = not os.path.exists(final_data_file)
-#         final_data.to_csv(final_data_file, sep='\t', index=False, mode='a', header=header)
-#     else:
-#         # Convert to numpy array and append
-#         with open(final_data_file, 'a') as f:
-#             np.savetxt(f, np.array(final_data), fmt='%s', delimiter='\t')
-#     print(f"Appended final data to {final_data_file}")
-
-
-
 
 def single_file(file_path, first_file_name):
     data = read_data(file_path, verbose=0)
@@ -170,9 +29,12 @@ def single_file(file_path, first_file_name):
 
     filtered_data = at_least_two_rpcs_fired(data)
     print(f"Events after 2 or more RPCs fired filter: {len(filtered_data)}/{rawcounts}")
-    #plots. plot_hist_Q(filtered_data, detector=1, verbose=False)
+
+    
+    
+    # raw_events = len(data)
+    # df = data
     raw_events = len(filtered_data)
-  
     df = filtered_data
 
     # Define the common columns to keep
@@ -203,9 +65,11 @@ def single_file(file_path, first_file_name):
 
         # Select only the corresponding DataFrame
         de_rpc = rpc_dfs[rpc - 1].copy()
+        
 
         rpc_params = load_rpc_parameters(f"lookUpTable_RPC{rpc}.txt")
         apply_rpc_offsets(de_rpc, rpc_params, rpc)
+
 
         # --- Apply your filter on de_rpc (not the whole data) ---
         mask1 = filter_rpc(de_rpc, rpc)
@@ -215,7 +79,7 @@ def single_file(file_path, first_file_name):
 
         # Apply the mask only to de_rpc
         de_rpc = de_rpc[mask1]
-        #plots. plot_hist_Q(de_rpc, detector=rpc, verbose=False)
+        # plots.plot_hist_Q(de_rpc, detector=rpc, verbose=False)
 
             # filt 2 - find Qmax strips
         de_rpc_max, mask2 = find_Qmax_strips(de_rpc, rpc)     
@@ -249,8 +113,8 @@ def single_file(file_path, first_file_name):
             run_parameters=run_parameters,
             final_data=final_data,
             file_path=file_path,
-            output_dir="results",
-            max_rows=1000
+            output_dir="6000V_results",
+            max_rows=10000
         )
         # Optional: store or process de_rpc further
         rpc_dfs[rpc - 1] = de_rpc  # update with filtered version
@@ -259,52 +123,7 @@ def single_file(file_path, first_file_name):
 
     return 0
 
-import os
-import pandas as pd
 
-def load_rpc_results(rpc, output_dir="results"):
-    """
-    Load the run parameters and final data for one RPC.
-    Handles multiple appended runs.
-    Returns:
-        run_parameters_list: list of dicts, one per run
-        final_data: pandas DataFrame
-    """
-    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}.txt")
-    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}.txt")
-
-    run_parameters_list = []
-
-    # --- Load run parameters ---
-    if os.path.exists(run_param_file):
-        with open(run_param_file, 'r') as f:
-            content = f.read().strip()
-
-        # Split different runs if multiple blocks exist
-        blocks = [block.strip() for block in content.split("=== New Run ===") if block.strip()]
-        for block in blocks:
-            run_params = {}
-            for line in block.splitlines():
-                if ":" in line:
-                    key, val = line.split(":", 1)
-                    run_params[key.strip()] = val.strip()
-            run_parameters_list.append(run_params)
-    else:
-        print(f"Warning: {run_param_file} not found.")
-        run_parameters_list = []
-
-    # --- Load final data ---
-    if os.path.exists(final_data_file):
-        try:
-            final_data = pd.read_csv(final_data_file, sep='\t')
-        except Exception as e:
-            print(f"Could not load as DataFrame: {e}")
-            final_data = None
-    else:
-        print(f"Warning: {final_data_file} not found.")
-        final_data = None
-
-    return run_parameters_list, final_data
 
 
 # rpc=4
@@ -314,20 +133,25 @@ def load_rpc_results(rpc, output_dir="results"):
 # # print("Final data (first 5 rows):")
 # # print(final_data.head())
 
-input_files = [
-    "/home/lidka/SWGO/4RPC/sest25287163557.mat",
-    "/home/lidka/SWGO/4RPC/sest25287163815.mat",
-    "/home/lidka/SWGO/4RPC/sest25287164033.mat",
-    "/home/lidka/SWGO/4RPC/sest25287164250.mat"
-]
+# input_files = [
+#     "/home/lidka/SWGO/4RPC/sest25287163557.mat",
+#    "/home/lidka/SWGO/4RPC/sest25287163815.mat",
+#    "/home/lidka/SWGO/4RPC/sest25287164033.mat",
+#    "/home/lidka/SWGO/4RPC/sest25287164250.mat"
+# ]
+import os
+import glob
 
+input_dir = "/home/lidka/SWGO/6000V"
+
+# Find all .mat files in the folder, sorted by name
+input_files = sorted(glob.glob(os.path.join(input_dir, "*.mat")))
 
 rpc = 1
 first_file_name = input_files[0]
 
 for file_path in input_files:
     n = single_file(file_path, first_file_name)
-
 
 
 # general_config = load_general_config("lookUpTable_general.txt")

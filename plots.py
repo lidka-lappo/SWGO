@@ -26,12 +26,14 @@ def plot_hist_Q(df, detector, verbose=False):
                     axes[0, i].set_title(f"QF RPC{detector} Strip {i+1}")
                     axes[0, i].set_xlabel("Charge")
                     axes[0, i].set_ylabel("Count")
+                    axes[0, i].set_yscale('log') 
                     axes[0, i].grid(True)
 
                     axes[1, i].hist(qb_data[:, i], bins=50, alpha=0.7, color='green')
                     axes[1, i].set_title(f"QB RPC{detector} Strip {i+1}")
                     axes[1, i].set_xlabel("Charge")
                     axes[1, i].set_ylabel("Count")
+                    axes[1, i].set_yscale('log') 
                     axes[1, i].grid(True)
                 
                 plt.tight_layout()
