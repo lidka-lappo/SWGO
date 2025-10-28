@@ -155,11 +155,14 @@ def apply_rpc_offsets(data, rpc_params, rpc):
     x_offsets = offsets[:, 0]
     y_offsets = offsets[:, 1]
 
-
+    #print(data[qf_key])
+    print(type(data[qf_key].iloc[0]))
 
     # Convert array columns to separate columns
     QF_df = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)])
     QB_df = pd.DataFrame(data[qb_key].tolist(), columns=[f"QB{i}" for i in range(4)])
+    
+
 
     # Apply offsets
     for i in range(4):
@@ -195,7 +198,49 @@ def at_least_two_rpcs_fired(rpc_data):
     rpc_data['num_rpc_fired'] = fired_df.sum(axis=1)
 
     # Keep only rows with at least 2 RPCs fired
-    filtered = rpc_data[rpc_data['num_rpc_fired'] >= 3].copy()
+    filtered = rpc_data[rpc_data['num_rpc_fired'] >= 2].copy()
         
 
     return filtered
+
+import pandas as pd
+
+def at_least_two_rpcs_and_one_scint(data):
+    """
+    Keeps only events where at least two RPC detectors fired
+    AND at least one scintillator fired.
+    """
+
+    # --- Check RPC firing ---
+    fired_counts = []
+    for i in range(1, 5):  # RPC1 to RPC4
+        fired = data.apply(
+            lambda row: rpc_fired(row[f'TF_RPC{i}'], row[f'TB_RPC{i}']), axis=1
+        )
+        fired_counts.append(fired)
+
+    fired_df = pd.concat(fired_counts, axis=1)
+    fired_df.columns = [f'RPC{i}_fired' for i in range(1, 5)]
+    data['num_rpc_fired'] = fired_df.sum(axis=1)
+
+    # --- Check scintillator firing ---
+    try:
+        TF = pd.DataFrame(data['TF_scint'].tolist(), columns=['TF_S1','TF_S2','TF_S3','TF_S4'])
+        QF = pd.DataFrame(data['QF_scint'].tolist(), columns=['QF_S1','QF_S2','QF_S3','QF_S4'])
+
+        # A scintillator is considered "fired" if TF > 0 (or True)
+        scint_fired = (TF > 0).any(axis=1)
+        #scint3_fired = TF['TF_S3'] > 0
+
+    except KeyError as e:
+        print(f"Missing expected column: {e}")
+        scint_fired = pd.Series([False]*len(data))
+        #scint3_fired = pd.Series([False]*len(data))
+
+
+    # --- Apply combined condition ---
+    mask = ((data['num_rpc_fired'] >= 2) & scint_fired) | (data['num_rpc_fired'] >= 3)
+
+    # --- Return filtered data ---
+    return data[mask].copy()
+

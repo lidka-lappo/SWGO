@@ -1,5 +1,5 @@
 import os
-from filters import trigger_filter_scint
+from filters import at_least_two_rpcs_and_one_scint, trigger_filter_scint
 
 from read_data import read_data
 import plots
@@ -28,12 +28,14 @@ def single_file(file_path, first_file_name):
 
 
     filtered_data = at_least_two_rpcs_fired(data)
+    #filtered_data = at_least_two_rpcs_and_one_scint(data)
     print(f"Events after 2 or more RPCs fired filter: {len(filtered_data)}/{rawcounts}")
 
     
     
     # raw_events = len(data)
     # df = data
+
     raw_events = len(filtered_data)
     df = filtered_data
 
@@ -149,10 +151,8 @@ input_files = sorted(glob.glob(os.path.join(input_dir, "*.mat")))
 
 rpc = 1
 first_file_name = input_files[0]
-
 for file_path in input_files:
     n = single_file(file_path, first_file_name)
-
 
 # general_config = load_general_config("lookUpTable_general.txt")
 # XRange = general_config["ranges"]["XRange"]
