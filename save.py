@@ -37,16 +37,20 @@ import os
 import pandas as pd
 import numpy as np
 
-def save_run_parameters(rpc, run_parameters, file_path, output_dir="results"):
+def save_run_parameters(rpc, run_parameters, file_path, input_dir,  output_dir="results"):
     """
     Save run parameters to a CSV file. Each call creates a new file.
     """
-    os.makedirs(output_dir, exist_ok=True)
+
+        # Make output_dir a subdirectory of input_dir
+    full_output_dir = os.path.join(input_dir, output_dir)
+    os.makedirs(full_output_dir, exist_ok=True)
+    
     
     # Extract timestamp from file name
     timestamp = os.path.splitext(os.path.basename(file_path))[0][7:]
     print(timestamp)
-    run_param_file = os.path.join(output_dir, f"run_parameters_RPC{rpc}_{timestamp}.csv")
+    run_param_file = os.path.join(full_output_dir, f"run_parameters_RPC{rpc}_{timestamp}.csv")
     
     # Flatten pandas Series if needed
     flat_params = {k: v.iloc[0] if hasattr(v, "iloc") else v for k, v in run_parameters.items()}
@@ -57,15 +61,17 @@ def save_run_parameters(rpc, run_parameters, file_path, output_dir="results"):
     print(f"Saved run parameters to {run_param_file}")
 
 
-def save_final_results(rpc, final_data, file_path, output_dir="results"):
+def save_final_results(rpc, final_data, file_path, input_dir, output_dir="results"):
     """
     Save final results to a TXT file (tab-delimited). Each call creates a new file.
     """
-    os.makedirs(output_dir, exist_ok=True)
+
+    full_output_dir = os.path.join(input_dir, output_dir)
+    os.makedirs(full_output_dir, exist_ok=True)
     
     # Extract timestamp from file name
     timestamp = os.path.splitext(os.path.basename(file_path))[0][7:]
-    final_data_file = os.path.join(output_dir, f"final_data_RPC{rpc}_{timestamp}.txt")
+    final_data_file = os.path.join(full_output_dir, f"final_data_RPC{rpc}_{timestamp}.txt")
     
     # Convert to array if not a DataFrame
     if isinstance(final_data, pd.DataFrame):
@@ -129,11 +135,13 @@ def save_rpc_results(rpc, run_parameters, final_data, file_path, output_dir="res
         state["timestamp"] = None
         state["rows"] = 0
 
-def save_pipeline(bronze_data, file_path, output_dir="bronze", max_rows=10000):
+def save_pipeline(bronze_data, file_path, input_dir, output_dir="bronze", max_rows=10000):
     # Pick the correct RPC state dictionary
     state = bronze_output_state[1]
 
-    os.makedirs(output_dir, exist_ok=True)
+
+    full_output_dir = os.path.join(input_dir, output_dir)
+    os.makedirs(full_output_dir, exist_ok=True)
 
     # Extract timestamp from current input file (e.g. "sest25287163557.mat" → "25287163557")
     timestamp = os.path.splitext(os.path.basename(file_path))[0][4:]
@@ -144,7 +152,7 @@ def save_pipeline(bronze_data, file_path, output_dir="bronze", max_rows=10000):
         state["rows"] = 0
 
     out_timestamp = state["timestamp"]
-    bronze_data_file = os.path.join(output_dir, f"bronze_{out_timestamp}.txt")
+    bronze_data_file = os.path.join(full_output_dir, f"bronze_{out_timestamp}.txt")
     if os.path.exists(bronze_data_file):
         try:
             with open(bronze_data_file, 'r') as f:

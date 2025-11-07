@@ -60,7 +60,7 @@ def matlab_datenum_to_datetime(matlab_datenum):
     python_datetime = datetime.fromordinal(int(days) - 366) + timedelta(days=days % 1)
     return python_datetime
 
-def calculate_parameters(df, raw_events, rpc, verbose=False):
+def calculate_parameters(df, raw_events, rpc, hv_folder=None, thp_folder=None, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
     strTh = general_config["general"]["streamer_threshold"]
 
@@ -127,23 +127,45 @@ def calculate_parameters(df, raw_events, rpc, verbose=False):
     # ===== Get mean HV in time range =====
     mean_HV = np.nan
     df_hv = read_hv(
-        "hv",
+        hv_folder,
         start_date=t_start.strftime("%Y-%m-%d"),
         end_date=t_end.strftime("%Y-%m-%d")
     )
 
+    # Filter by time
     df_hv = df_hv.loc[(df_hv.index >= t_start) & (df_hv.index <= t_end)]
-    if not df_hv.empty:
-        cols_to_sum = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
-        mean_HV = (df_hv[cols_to_sum].sum(axis=1)).mean()
 
+    # Define the HV column names for this RPC
+    cols_to_sum = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
+
+    mean_HV = np.nan  # default value
+
+    if not df_hv.empty:
+        # Only use the columns that actually exist in the DataFrame
+        existing_cols = [c for c in cols_to_sum if c in df_hv.columns]
+
+        if existing_cols:
+            #mean_HV = df_hv[existing_cols].sum(axis=1).mean()
+
+            mean_HV = df_hv[existing_cols].mean().mean()
+
+            
+        else:
+
+            print(f"⚠️ No HV columns found for RPC{rpc}. Available columns: {df_hv.columns.tolist()}")
+    else:
+        print("⚠️ df_hv is empty for the given time range.")
+
+    print(f"Mean HV for RPC{rpc}: {mean_HV}")
+
+    
     # ===== Get Temperature, Humidity and Pressure in time range =====
     mean_Temp = np.nan
     mean_Hum = np.nan
     mean_Press = np.nan
 
     df_thp = read_thp(
-        "thp",
+        thp_folder,
         start_date=t_start.strftime("%Y-%m-%d"),
         end_date=t_end.strftime("%Y-%m-%d")
     )
@@ -184,10 +206,10 @@ def calculate_parameters(df, raw_events, rpc, verbose=False):
         f'Qmedian_noST_error': err_Qmedian_noST,
         f'streamer_fraction': ST,
         f'streamer_fraction_error': err_ST,
-        # f'mean_HV': mean_HV,
-        # f'mean_Temp': mean_Temp,
-        # f'mean_Hum': mean_Hum,
-        # f'mean_Press': mean_Press
+        f'mean_HV': mean_HV,
+        f'mean_Temp': mean_Temp,
+        f'mean_Hum': mean_Hum,
+        f'mean_Press': mean_Press
     }
 
     if verbose:

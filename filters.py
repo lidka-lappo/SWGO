@@ -33,8 +33,64 @@ def trigger_filter_scint(data):
         print(f"Missing expected column: {e}")
         return pd.Series([False]*len(data))
 
+import pandas as pd
+import pandas as pd
+import numpy as np
 
-###############################################################
+def filter_by_charge(data, rpc):
+    """Filter out negative charges in QF and QB arrays."""
+    qf_key = f"QF_RPC{rpc}"
+    qb_key = f"QB_RPC{rpc}"
+
+    try:
+        QF = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)], index=data.index)
+        QB = pd.DataFrame(data[qb_key].tolist(), columns=[f"QB{i}" for i in range(4)], index=data.index)
+
+        # Replace negative charges with NaN
+        QF = QF.mask(QF <= 0)
+        QB = QB.mask(QB <= 0)
+
+        # Write masked data back
+        data[qf_key] = QF.values.tolist()
+        data[qb_key] = QB.values.tolist()
+
+        # Valid rows are those that have at least one non-NaN charge
+        valid_qf = ~QF.isna().all(axis=1)
+        valid_qb = ~QB.isna().all(axis=1)
+        valid_idx = valid_qf & valid_qb
+
+        return valid_idx
+
+    except KeyError as e:
+        print(f"Missing expected charge column for RPC{rpc}: {e}")
+        return pd.Series([False] * len(data), index=data.index)
+
+
+def filter_by_time(data, rpc):
+    tf_key = f"TF_RPC{rpc}"
+    tb_key = f"TB_RPC{rpc}"
+
+    try:
+        TF = pd.DataFrame(data[tf_key].tolist(), columns=[f"TF{i}" for i in range(4)], index=data.index)
+        TB = pd.DataFrame(data[tb_key].tolist(), columns=[f"TB{i}" for i in range(4)], index=data.index)
+
+        # Ensure numeric
+        TF = TF.apply(pd.to_numeric, errors='coerce')
+        TB = TB.apply(pd.to_numeric, errors='coerce')
+
+        # Valid if TF or TB is non-zero (negative is valid)
+        mask_time = (TF.values != 0) & (TB.values != 0)
+        valid_idx = mask_time.any(axis=1)
+
+        print(f"Valid rows by time: {valid_idx.sum()} / {len(valid_idx)}")
+        return valid_idx
+
+    except KeyError as e:
+        print(f"Missing expected time column for RPC{rpc}: {e}")
+        return pd.Series([False] * len(data), index=data.index)
+
+
+
 def filter_rpc(data, rpc):
     qf_key = f"QF_RPC{rpc}"
     qb_key = f"QB_RPC{rpc}"
@@ -68,13 +124,6 @@ def filter_rpc(data, rpc):
         QF = QF.where(mask_time)
         QB = QB.where(mask_time)
 
-        # mask_time = (TF != 0) & (TB != 0)
-        # QF = QF.where(mask_time)
-        # QB = QB.where(mask_time)
-
-        # # Replace negative charges with NaN
-        # QF = QF.mask(QF < 0)
-        # QB = QB.mask(QB < 0)
 
      # --- Write masked data back into the main DataFrame ---
         data[qf_key] = QF.values.tolist()
@@ -205,8 +254,74 @@ def at_least_two_rpcs_fired(rpc_data):
 
 import pandas as pd
 
+import pandas as pd
+
+def fancy_trigger(data, triggerType, include_general_rule=False):
+    """
+    Keeps events that meet any of these conditions:
+      1. RPC1 & RPC4 fired
+      2. RPC1 & Scintillator 3 fired
+      3. RPC4 & Scintillator 4 fired
+      4. RPC3 & Scintillator 4 fired
+      5. RPC2 & Scintillator 3 fired
+      6. Scintillator 3 & Scintillator 4 fired
+    Optionally includes the general rule:
+      - At least two RPCs and at least one scintillator, or >=3 RPCs
+    """
+
+    # --- Check RPC firing ---
+    fired_counts = []
+    for i in range(1, 5):
+        fired = data.apply(
+            lambda row: rpc_fired(row[f'TF_RPC{i}'], row[f'TB_RPC{i}']), axis=1
+        )
+        fired_counts.append(fired)
+
+    rpc_fired_df = pd.concat(fired_counts, axis=1)
+    rpc_fired_df.columns = [f'RPC{i}_fired' for i in range(1, 5)]
+    num_rpc_fired = rpc_fired_df.sum(axis=1)
+
+    # --- Check scintillator firing ---
+    try:
+        TF = pd.DataFrame(data['TF_scint'].tolist(), columns=['TF_S1', 'TF_S2', 'TF_S3', 'TF_S4'])
+    except KeyError:
+        TF = pd.DataFrame(0, index=data.index, columns=['TF_S1', 'TF_S2', 'TF_S3', 'TF_S4'])
+
+    scint_fired = (TF != 0)
+    S1, S2, S3, S4 = [scint_fired[f'TF_S{i}'] for i in range(1, 5)]
+
+        # --- Define specific combinations ---
+    # --- Define specific combinations ---
+    cond1 = rpc_fired_df['RPC1_fired'] & rpc_fired_df['RPC2_fired'] & S2
+    cond2 = rpc_fired_df['RPC4_fired'] & rpc_fired_df['RPC3_fired'] & S1
+    # cond3 = S3 & S4
+    cond4 = S1 & S2  
+
+    # --- Choose mask based on trigger type ---
+    if triggerType == "TriggerDOWN":
+        special_mask = cond2
+    elif triggerType == "TriggerUP":
+        special_mask = cond1
+    elif triggerType == "TriggerScint":
+        special_mask = cond4
+    else:
+        special_mask = cond1 | cond2 | cond4
+
+    # --- General rule (optional) ---
+    if include_general_rule:
+        general_mask = ((num_rpc_fired >= 2) & scint_fired.any(axis=1)) | (num_rpc_fired >= 3)
+        final_mask = special_mask | general_mask
+    else:
+        final_mask = special_mask
+    #final_mask = (num_rpc_fired >= 0) 
+    # --- Return filtered subset only ---
+    return data.loc[final_mask].copy()
+
+
+
 def at_least_two_rpcs_and_one_scint(data):
     """
+
     Keeps only events where at least two RPC detectors fired
     AND at least one scintillator fired.
     """

@@ -1,0 +1,2 @@
+time_start,time_end,efficiency,efficiency_error,Qmean,Qmean_error,Qmedian,Qmedian_error,Qmean_noST,Qmean_noST_error,Qmedian_noST,Qmedian_noST_error,streamer_fraction,streamer_fraction_error
+2025-10-29 11:27:05.204224,2025-10-29 11:59:54.804695,1.0,0.0,125.6807903685755,4.489809172780639,98.362609865,53.094848635,57.57353339194915,1.3405696082009568,56.78881836,11.521057130000003,49.71590909090909,2.664965936778817

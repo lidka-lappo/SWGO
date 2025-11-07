@@ -222,6 +222,7 @@ def plot_efficiency_vs_time(df, title="Efficiency vs Time"):
         subset = df[df["rpc"] == rpc]
 
         plt.errorbar(
+            #subset["timestamp"],
             subset["time_start"],
             subset["efficiency"],
             yerr=subset["efficiency_error"],
@@ -400,9 +401,188 @@ def plot_pressure_vs_time(df, title="Pressure vs Time"):
 #     plt.show()
 
 
-def plot_efficiency_vs_voltage(df, title="Efficiency vs Voltage"):
-    for rpc in sorted(df["rpc"].unique()):
-        subset = df[df["rpc"] == rpc]
+import matplotlib.pyplot as plt
+
+def plot_streamer_fraction_vs_voltage(df, rpc_list=None, title="Streamers vs Voltage"):
+    """
+    Plot streamer fraction vs voltage for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing columns ['rpc', 'mean_HV', 'streamer_fraction', 'streamer_fraction_error']
+    - rpc_list: list of RPC numbers (e.g., [1, 3]) or a single RPC number (e.g., 2)
+    - title: plot title
+    """
+    # If a single RPC is given, convert to list for uniform handling
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If rpc_list is None, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter dataframe for selected RPCs
+    df_filtered = df[df["rpc"].isin(rpc_list)]
+
+    # Plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        subset = df_filtered[df_filtered["rpc"] == rpc]
+        plt.errorbar(
+            subset["mean_HV"],
+            subset["streamer_fraction"],
+            yerr=subset["streamer_fraction_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("Voltage (V)")
+    plt.ylabel("Streamer Fraction")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_streamer_fraction_vs_voltage(df, rpc_list=None, title="Streamers vs Voltage"):
+    """
+    Plot streamer fraction vs voltage for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing columns ['rpc', 'mean_HV', 'streamer_fraction', 'streamer_fraction_error']
+    - rpc_list: list of RPC numbers (e.g., [1, 3]) or a single RPC number (e.g., 2)
+    - title: plot title
+    """
+    # If a single RPC is given, convert to list for uniform handling
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If rpc_list is None, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter dataframe for selected RPCs
+    df_filtered = df[df["rpc"].isin(rpc_list)]
+
+    # Plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        subset = df_filtered[df_filtered["rpc"] == rpc]
+        plt.errorbar(
+            subset["mean_HV"],
+            subset["streamer_fraction"],
+            yerr=subset["streamer_fraction_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("Voltage (V)")
+    plt.ylabel("Streamer Fraction")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_meanQ_vs_voltage(df, rpc_list=None, title="MeanQ vs Voltage"):
+    """
+    Plot mean Q vs voltage for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing columns ['rpc', 'mean_HV', 'mean_Q', 'mean_Q_error']
+    - rpc_list: list of RPC numbers (e.g., [1, 3]) or a single RPC number (e.g., 2)
+    - title: plot title
+    """
+    # If a single RPC is given, convert to list for uniform handling
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If rpc_list is None, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter dataframe for selected RPCs
+    df_filtered = df[df["rpc"].isin(rpc_list)]
+
+    # Plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        subset = df_filtered[df_filtered["rpc"] == rpc]
+        plt.errorbar(
+            subset["mean_HV"],
+            subset["Qmean_noST"],
+            yerr=subset["Qmean_noST_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("Voltage (V)")
+    plt.ylabel("MeanQ")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_medianQ_vs_voltage(df, rpc_list=None, title="MedianQ vs Voltage"):
+    """
+    Plot median Q vs voltage for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing columns ['rpc', 'mean_HV', 'median_Q', 'median_Q_error']
+    - rpc_list: list of RPC numbers (e.g., [1, 3]) or a single RPC number (e.g., 2)
+    - title: plot title
+    """
+    # If a single RPC is given, convert to list for uniform handling
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If rpc_list is None, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter dataframe for selected RPCs
+    df_filtered = df[df["rpc"].isin(rpc_list)]
+
+    # Plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        subset = df_filtered[df_filtered["rpc"] == rpc]
+        plt.errorbar(
+            subset["mean_HV"],
+            subset["Qmedian_noST"],
+            yerr=subset["Qmedian_noST_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("Voltage (V)")
+    plt.ylabel("Q median")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_efficiency_vs_voltage(df, rpc_list=None, title="Efficiency vs Voltage"):
+    """
+    Plot efficiency vs voltage for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing columns ['rpc', 'mean_HV', 'efficiency', 'efficiency_error']
+    - rpc_list: list of RPC numbers (e.g., [1, 3]) or a single RPC number (e.g., 2)
+    - title: plot title
+    """
+    # If a single RPC is given, convert to list for uniform handling
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If rpc_list is None, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter dataframe for selected RPCs
+    df_filtered = df[df["rpc"].isin(rpc_list)]
+
+    # Plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        subset = df_filtered[df_filtered["rpc"] == rpc]
         plt.errorbar(
             subset["mean_HV"],
             subset["efficiency"],
@@ -410,6 +590,7 @@ def plot_efficiency_vs_voltage(df, title="Efficiency vs Voltage"):
             fmt="o",
             label=f"RPC{rpc}"
         )
+
     plt.xlabel("Voltage (V)")
     plt.ylabel("Efficiency")
     plt.title(title)
@@ -423,13 +604,42 @@ def reduced_electric_field(V, d, P, T):
     # P in hPa, d in mm, V in V, T in Celsius
     kb = 0.13806  # 10^-22 J/K (your scaling choice, check units!)
     T_K = T + 273.15
-    E_N = (kb * V * T_K) / (P * d)  # in 10^-21 V*m^2 (Td if scaling chosen right)
+    d=d*1.00
+    E_N = (kb * V * T_K) / (P * d)  # in 10^-21 V*m^2 (Td)
     return E_N
 
 
-def plot_efficiency_vs_reduced_field(df, d=1, title="Efficiency vs E/N"):
-    for rpc in sorted(df["rpc"].unique()):
-        subset = df[df["rpc"] == rpc].copy()
+import matplotlib.pyplot as plt
+
+def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N"):
+    d=1  # gap distance in mm or cm, adjust as needed
+    """
+    Plot efficiency vs reduced electric field (E/N) for selected RPCs.
+
+    Parameters:
+    - df: pandas DataFrame containing ['rpc', 'mean_HV', 'mean_Press', 'mean_Temp', 'efficiency', 'efficiency_error']
+    - d: gap distance (in mm or cm, depending on your reduced_electric_field function)
+    - rpc_list: list of RPC numbers to plot (e.g., [1, 3]) or single number (e.g., 2)
+    - title: plot title
+    """
+    # If single RPC given, convert to list
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+    # If no list provided, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter DataFrame
+    df_filtered = df[df["rpc"].isin(rpc_list)].copy()
+
+    # Compute E/N and plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+            d=1.5
+        if(rpc==4):
+            d=2
+        subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
             subset["mean_HV"],
             d,
@@ -443,6 +653,7 @@ def plot_efficiency_vs_reduced_field(df, d=1, title="Efficiency vs E/N"):
             fmt="o",
             label=f"RPC{rpc}"
         )
+
     plt.xlabel("E/N (Td)")
     plt.ylabel("Efficiency")
     plt.title(title)
@@ -450,6 +661,7 @@ def plot_efficiency_vs_reduced_field(df, d=1, title="Efficiency vs E/N"):
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 
 # def plot_efficiency_vs_voltage(all_results, label=None, title="Efficiency vs Voltage"):
