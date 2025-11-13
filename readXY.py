@@ -188,8 +188,8 @@ def load_all_steps(base_folder, triggerType):
 
              # --- Apply meanHV override for RPC4 ---
             if rpc == 4 and step_folder in hv_map:
-                #df["mean_HV"] = hv_map[step_folder]
-                df["mean_HV"] = 11100
+                df["mean_HV"] = hv_map[step_folder]
+                #df["mean_HV"] = 11100
                 print(f"⚙️ meanHV for RPC4 in {step_folder} set to {hv_map[step_folder]}")
 
 
@@ -221,19 +221,19 @@ def load_all_steps(base_folder, triggerType):
         # plots.plot_efficiency_vs_voltage(combined, rpc_list=[1, 2])
 
 
-        # plots.plot_medianQ_vs_voltage(combined, rpc_list=[1, 2])
-        # plots.plot_medianQ_vs_voltage(combined, rpc_list=[1, 2])
+        # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[1, 2])
+        # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[1, 2])
 
 
 
-        # plots.plot_streamer_fraction_vs_voltage(combined, rpc_list=[3, 4])
-        # plots.plot_efficiency_vs_voltage(combined, rpc_list=[3, 4])
+        # # plots.plot_streamer_fraction_vs_voltage(combined, rpc_list=[3, 4])
+        #plots.plot_efficiency_vs_voltage(combined, rpc_list=[3])
 
 
-        # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[3, 4])
-        # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[3, 4])
+        # # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[3, 4])
+        # # # plots.plot_medianQ_vs_voltage(combined, rpc_list=[3, 4])
 
-        # plots.plot_efficiency_vs_reduced_field(combined, rpc_list=[1, 2,3 ,4])
+       # plots.plot_efficiency_vs_reduced_field(combined, rpc_list=[3])
 
     except Exception as e:
         print(f"⚠️ Plotting failed: {e}")

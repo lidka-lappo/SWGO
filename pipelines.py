@@ -134,8 +134,8 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
             continue
         de_rpc = calculate_Q_T(de_rpc, rpc)
 
-        hv_folder = "/home/lidka/SWGO/SKAN3/HV"
-        thp_folder = "/home/lidka/SWGO/SKAN3/THP"
+        hv_folder = "/home/lidka/SWGO/HV"
+        thp_folder = "/home/lidka/SWGO/THP"
 
         run_parameters = calculate_parameters(de_rpc, raw_events, rpc, hv_folder, thp_folder, verbose=0)
         final_data = calculate_XY_positions(de_rpc, rpc)
@@ -156,17 +156,17 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
 from pathlib import Path
 import os
 import glob
-base_folder = Path("/home/lidka/SWGO/SKAN3") # change this to your main folder path
+base_folder = Path("/home/lidka/SWGO/SKAN4") # change this to your main folder path
 #input_dir = "/home/lidka/SWGO/SKAN3/STEP1"
-input_dir = base_folder / "STEP6"
+input_dir = base_folder / "STEP9"
 
 # Find all .mat files in the folder, sorted by name
 input_files = sorted(glob.glob(os.path.join(input_dir, "*.mat")))
 rpc = 1
 #first_file_name = input_files[0]
 # triggerType = "TriggerScint"
-#triggerType = "TriggerUP"
-triggerType = "TriggerDOWN"
+triggerType = "TriggerUP"
+#triggerType = "TriggerDOWN"
 
 for file_path in input_files:
     bronze_data = bronze_pipe(file_path, triggerType)
@@ -191,40 +191,49 @@ for file_path in input_files:
 #bronze_file_path = "/home/lidka/SWGO/SKAN1/STEP1/bronzeTriggerDOWN/bronze_25307151150.txt"
 # # #bronze_readback = pd.read_csv(bronze_file_path, sep='\t')
 silver_data = silver_pipe( input_dir, output_dir=f"silver{triggerType}", triggerType=triggerType)
-#readXY(folder=f"{input_dir}/silver{triggerType}")
+# #readXY(folder=f"{input_dir}/silver{triggerType}")
 
-#df = load_all_steps(base_folder, triggerType)
+# #df = load_all_steps(base_folder, triggerType)
 
-###################################################
-###FULL PICTURE
-###################################################
-
-
-# base_folder = "/home/lidka/SWGO/SKAN2"  # change this to your main folder path
-# df = load_all_steps(base_folder, triggerType)
+# ###################################################
+# ###FULL PICTURE
+# ###################################################
 
 
-# df1 =  load_all_steps("/home/lidka/SWGO/SKAN1", "TriggerDOWN")
-# df2= load_all_steps("/home/lidka/SWGO/SKAN2", "TriggerUP")
-# #df_combined = pd.concat([df1, df2], ignore_index=True)
+base_folder = "/home/lidka/SWGO/SKAN4"  # change this to your main folder path
+df = load_all_steps(base_folder, triggerType)
+# #####################################################
 
-# # Select specific RPCs from each dataset
-# df1_sel = df1[df1["rpc"].isin([1, 2])]
-# df2_sel = df2[df2["rpc"].isin([3, 4])]
+df1 = load_all_steps("/home/lidka/SWGO/SKAN3", "TriggerDOWN")
+df2= load_all_steps("/home/lidka/SWGO/SKAN2", "TriggerUP")
+df3= load_all_steps("/home/lidka/SWGO/SKAN4", "TriggerUP")
+###df_combined = pd.concat([df1, df2, df3], ignore_index=True)
 
-# # Combine them
-# df_combined = pd.concat([df1_sel, df2_sel], ignore_index=True)
+###Select specific RPCs from each dataset
+df1_sel = df1[df1["rpc"].isin([1, 2])]
+df2_sel = df2[df2["rpc"].isin([4])]
+df3_sel = df3[df3["rpc"].isin([3])]
 
-# # Plot using the combined filtered data
-# plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
-# # plots.plot_streamer_fraction_vs_voltage(df_combined, rpc_list=[1, 2, 3, 4])
-# plots.plot_efficiency_vs_voltage(df_combined, rpc_list=[1, 2,3, 4])
+# # # Combine them
+df_combined = pd.concat([df1_sel, df2_sel, df3_sel], ignore_index=True)
+
+# Plot using the combined filtered data
+plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[ 1, 2, 3, 4])
+# plots.plot_streamer_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
+# plots.plot_Qmean_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
+# plots.plot_Qmedian_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
+
+
+# plots.plot_streamer_fraction_vs_voltage(df_combined, rpc_list=[1, 2, 3, 4])
+# plots.plot_medianQ_vs_voltage(df_combined, rpc_list=[1, 2, 3, 4])
+# plots.plot_medianQ_vs_voltage(df_combined, rpc_list=[1, 2, 3, 4])
+# plots.plot_efficiency_vs_voltage(df_combined, rpc_list=[1, 2, 3, 4])
 
 
 # plots.plot_medianQ_vs_voltage(df_combined, rpc_list=[3, 4])
 # plots.plot_medianQ_vs_voltage(df_combined, rpc_list=[3, 4])
 
-#plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[1, 2,3 ,4])
+# plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[1, 2,3 ,4])
 
 # # print(silver_data.tail())
 

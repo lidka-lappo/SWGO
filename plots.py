@@ -613,15 +613,6 @@ import matplotlib.pyplot as plt
 
 def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N"):
     d=1  # gap distance in mm or cm, adjust as needed
-    """
-    Plot efficiency vs reduced electric field (E/N) for selected RPCs.
-
-    Parameters:
-    - df: pandas DataFrame containing ['rpc', 'mean_HV', 'mean_Press', 'mean_Temp', 'efficiency', 'efficiency_error']
-    - d: gap distance (in mm or cm, depending on your reduced_electric_field function)
-    - rpc_list: list of RPC numbers to plot (e.g., [1, 3]) or single number (e.g., 2)
-    - title: plot title
-    """
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -662,6 +653,181 @@ def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N
     plt.grid(True)
     plt.show()
 
+
+
+def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
+    d=1  # gap distance in mm or cm, adjust as needed
+    # If single RPC given, convert to list
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+
+    # If no list provided, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter DataFrame
+    df_filtered = df[df["rpc"].isin(rpc_list)].copy()
+
+    # Compute E/N and plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+            d=1.5
+        if(rpc==4):
+            d=2
+        subset = df_filtered[df_filtered["rpc"] == rpc].copy()
+        subset["E_N"] = reduced_electric_field(
+            subset["mean_HV"],
+            d,
+            subset["mean_Press"],
+            subset["mean_Temp"]
+        )
+        plt.errorbar(
+            subset["E_N"],
+            subset["streamer_fraction"],
+            yerr=subset["streamer_fraction_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("E/N (Td)")
+    plt.ylabel("Streamer")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_Qmedian_vs_reduced_field(df, rpc_list=None, title="Qmedian vs E/N"):
+    d=1  # gap distance in mm or cm, adjust as needed
+    # If single RPC given, convert to list
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+
+    # If no list provided, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter DataFrame
+    df_filtered = df[df["rpc"].isin(rpc_list)].copy()
+
+    # Compute E/N and plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+            d=1.5
+        if(rpc==4):
+            d=2
+        subset = df_filtered[df_filtered["rpc"] == rpc].copy()
+        subset["E_N"] = reduced_electric_field(
+            subset["mean_HV"],
+            d,
+            subset["mean_Press"],
+            subset["mean_Temp"]
+        )
+        plt.errorbar(
+            subset["E_N"],
+            subset["Qmedian"],
+            yerr=subset["Qmedian_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("E/N (Td)")
+    plt.ylabel("Qmedian")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
+    d=1  # gap distance in mm or cm, adjust as needed
+    # If single RPC given, convert to list
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+
+    # If no list provided, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter DataFrame
+    df_filtered = df[df["rpc"].isin(rpc_list)].copy()
+
+    # Compute E/N and plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+            d=1.5
+        if(rpc==4):
+            d=2
+        subset = df_filtered[df_filtered["rpc"] == rpc].copy()
+        subset["E_N"] = reduced_electric_field(
+            subset["mean_HV"],
+            d,
+            subset["mean_Press"],
+            subset["mean_Temp"]
+        )
+        plt.errorbar(
+            subset["E_N"],
+            subset["streamer_fraction"],
+            yerr=subset["streamer_fraction_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("E/N (Td)")
+    plt.ylabel("Streamer")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_Qmean_vs_reduced_field(df, rpc_list=None, title="Qmean vs E/N"):
+    d=1  # gap distance in mm or cm, adjust as needed
+    # If single RPC given, convert to list
+    if isinstance(rpc_list, (int, str)):
+        rpc_list = [rpc_list]
+
+
+    # If no list provided, plot all RPCs
+    if rpc_list is None:
+        rpc_list = sorted(df["rpc"].unique())
+
+    # Filter DataFrame
+    df_filtered = df[df["rpc"].isin(rpc_list)].copy()
+
+    # Compute E/N and plot for each selected RPC
+    for rpc in sorted(df_filtered["rpc"].unique()):
+        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+            d=1.32
+        if(rpc==4):
+            d=2
+        subset = df_filtered[df_filtered["rpc"] == rpc].copy()
+        subset["E_N"] = reduced_electric_field(
+            subset["mean_HV"],
+            d,
+            subset["mean_Press"],
+            subset["mean_Temp"]
+        )
+        plt.errorbar(
+            subset["E_N"],
+            subset["Qmean"],
+            yerr=subset["Qmean_error"],
+            fmt="o",
+            label=f"RPC{rpc}"
+        )
+
+    plt.xlabel("E/N (Td)")
+    plt.ylabel("Qmean")
+    plt.title(title)
+    plt.tight_layout()
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 # def plot_efficiency_vs_voltage(all_results, label=None, title="Efficiency vs Voltage"):

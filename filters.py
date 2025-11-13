@@ -299,11 +299,11 @@ def fancy_trigger(data, triggerType, include_general_rule=False):
 
     # --- Choose mask based on trigger type ---
     if triggerType == "TriggerDOWN":
-        special_mask = cond2
+        special_mask = cond2 | cond4
     elif triggerType == "TriggerUP":
-        special_mask = cond1
+        special_mask = cond1 | cond4
     elif triggerType == "TriggerScint":
-        special_mask = cond4
+        special_mask = cond4 
     else:
         special_mask = cond1 | cond2 | cond4
 
