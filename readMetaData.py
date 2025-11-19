@@ -52,6 +52,7 @@ def read_hv(folder_path, start_date=None, end_date=None):
     ]
     
     all_dfs = []
+    # print("Files in folder:", os.listdir(folder_path))
 
     for fname in sorted(os.listdir(folder_path)):
         if not fname.endswith(".txt"):

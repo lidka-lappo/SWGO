@@ -37,6 +37,53 @@ import pandas as pd
 import pandas as pd
 import numpy as np
 
+def filter_by_charge_crew(data):
+    """Filter out negative charges in QF and QB arrays."""
+    qf_key = f"QF_crew"
+
+
+    try:
+        QF = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)], index=data.index)
+        
+        # Replace negative charges with NaN
+        QF = QF.mask(QF <= 0)
+        
+
+        # Write masked data back
+        data[qf_key] = QF.values.tolist()
+
+        # Valid rows are those that have at least one non-NaN charge
+        valid_qf = ~QF.isna().all(axis=1)
+        valid_idx = valid_qf 
+
+        return valid_idx
+
+    except KeyError as e:
+        print(f"Missing expected charge column for CREW: {e}")
+        return pd.Series([False] * len(data), index=data.index)
+
+
+def filter_by_time_crew(data):
+    tf_key = f"TF_crew"
+
+    try:
+        TF = pd.DataFrame(data[tf_key].tolist(), columns=[f"TF{i}" for i in range(4)], index=data.index)
+        
+        # Ensure numeric
+        TF = TF.apply(pd.to_numeric, errors='coerce')
+        
+        # Valid if TF or TB is non-zero (negative is valid)
+        mask_time = (TF.values < 0) 
+        valid_idx = mask_time.all(axis=1)
+
+       # print(f"Valid rows by time: {valid_idx.sum()} / {len(valid_idx)}")
+        return valid_idx
+
+    except KeyError as e:
+        print(f"Missing expected time column for CREW: {e}")
+        return pd.Series([False] * len(data), index=data.index)
+
+
 def filter_by_charge(data, rpc):
     """Filter out negative charges in QF and QB arrays."""
     qf_key = f"QF_RPC{rpc}"
@@ -82,7 +129,7 @@ def filter_by_time(data, rpc):
         mask_time = (TF.values != 0) & (TB.values != 0)
         valid_idx = mask_time.any(axis=1)
 
-        print(f"Valid rows by time: {valid_idx.sum()} / {len(valid_idx)}")
+        #print(f"Valid rows by time: {valid_idx.sum()} / {len(valid_idx)}")
         return valid_idx
 
     except KeyError as e:
@@ -192,7 +239,29 @@ def find_Qmax_strips(data, rpc):
         return pd.Series([False]*len(data))
 
 
+def apply_rpc_offsets_crew(data, rpc_params):
 
+    qf_key = f"QF_crew"
+
+
+    # Load offsets
+    offsets = np.array(rpc_params["offsets"])  # shape (4,2)
+    x_offsets = offsets[:, 0]
+
+    #print(data[qf_key])
+    print(type(data[qf_key].iloc[0]))
+
+    # Convert array columns to separate columns
+    Q_df = pd.DataFrame(data[qf_key].tolist(), columns=[f"QF{i}" for i in range(4)])
+
+    # Apply offsets
+    for i in range(4):
+        Q_df[f"QF{i}"] -= x_offsets[i]
+
+
+    # Combine back into list/array columns
+    data[qf_key] = Q_df.values.tolist()
+    return data
 
 def apply_rpc_offsets(data, rpc_params, rpc):
 
@@ -257,18 +326,6 @@ import pandas as pd
 import pandas as pd
 
 def fancy_trigger(data, triggerType, include_general_rule=False):
-    """
-    Keeps events that meet any of these conditions:
-      1. RPC1 & RPC4 fired
-      2. RPC1 & Scintillator 3 fired
-      3. RPC4 & Scintillator 4 fired
-      4. RPC3 & Scintillator 4 fired
-      5. RPC2 & Scintillator 3 fired
-      6. Scintillator 3 & Scintillator 4 fired
-    Optionally includes the general rule:
-      - At least two RPCs and at least one scintillator, or >=3 RPCs
-    """
-
     # --- Check RPC firing ---
     fired_counts = []
     for i in range(1, 5):
@@ -294,6 +351,7 @@ def fancy_trigger(data, triggerType, include_general_rule=False):
     # --- Define specific combinations ---
     cond1 = rpc_fired_df['RPC1_fired'] & rpc_fired_df['RPC2_fired'] & S2
     cond2 = rpc_fired_df['RPC4_fired'] & rpc_fired_df['RPC3_fired'] & S1
+    cond5 = rpc_fired_df['RPC4_fired'] & rpc_fired_df['RPC3_fired'] & rpc_fired_df['RPC1_fired'] & rpc_fired_df['RPC1_fired']
     # cond3 = S3 & S4
     cond4 = S1 & S2  
 
@@ -304,6 +362,8 @@ def fancy_trigger(data, triggerType, include_general_rule=False):
         special_mask = cond1 | cond4
     elif triggerType == "TriggerScint":
         special_mask = cond4 
+    elif triggerType == "Trigger4RPC":
+        special_mask = cond5 
     else:
         special_mask = cond1 | cond2 | cond4
 

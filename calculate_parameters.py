@@ -60,7 +60,7 @@ def matlab_datenum_to_datetime(matlab_datenum):
     python_datetime = datetime.fromordinal(int(days) - 366) + timedelta(days=days % 1)
     return python_datetime
 
-def calculate_parameters(df, raw_events, rpc, hv_folder=None, thp_folder=None, verbose=False):
+def calculate_parameters(df, raw_events, rpc, step_name=None,hv_folder=None, thp_folder=None, verbose=False):
     general_config = load_general_config("lookUpTable_general.txt")
     strTh = general_config["general"]["streamer_threshold"]
 
@@ -139,7 +139,16 @@ def calculate_parameters(df, raw_events, rpc, hv_folder=None, thp_folder=None, v
     cols_to_sum = [f"RPC{rpc}_readHV_1", f"RPC{rpc}_readHV_2"]
 
     mean_HV = np.nan  # default value
-
+    hv_map = {
+        "STEP1": 11500,
+        "STEP2": 11300,
+        "STEP3": 11100,
+        "STEP4": 11000,
+        "STEP5": 10800,
+        "STEP6": 10600,
+        "STEP7": 10400,
+        "STEP8": 10200,
+    }
     if not df_hv.empty:
         # Only use the columns that actually exist in the DataFrame
         existing_cols = [c for c in cols_to_sum if c in df_hv.columns]
@@ -151,8 +160,15 @@ def calculate_parameters(df, raw_events, rpc, hv_folder=None, thp_folder=None, v
 
             
         else:
+            if rpc == 4:
+                 # step_name must be passed into the function, e.g., "STEP3"
+                mean_HV = hv_map.get(step_name, None)
 
-            print(f"⚠️ No HV columns found for RPC{rpc}. Available columns: {df_hv.columns.tolist()}")
+            if mean_HV is None:
+                print(f"⚠️ Invalid step '{step_name}'. Available: {list(hv_map.keys())}")
+
+            else:
+                print(f"⚠️ No HV columns found for RPC{rpc}. Available columns: {df_hv.columns.tolist()}")
     else:
         print("⚠️ df_hv is empty for the given time range.")
 
@@ -227,9 +243,199 @@ def calculate_parameters(df, raw_events, rpc, hv_folder=None, thp_folder=None, v
     return pd.DataFrame([results])
 
 
-####################################3
+####################################
+
+def calculate_parameters_crew(df, raw_events, hv_folder=None, thp_folder=None, verbose=False):
+    general_config = load_general_config("lookUpTable_general.txt")
+    strTh = general_config["general"]["streamer_threshold"]
 
 
+    ######Should be calculated before 
+    df[['TF1', 'TF2', 'TF3', 'TF4']] = pd.DataFrame(df['TF_crew'].tolist(), index=df.index)
+    TF_crew = df["TF1"].to_numpy()
+    df[['QF1', 'QF2', 'QF3', 'QF4']] = pd.DataFrame(df['QF_crew'].tolist(), index=df.index)
+    Q = df[["QF1", "QF2", "QF3", "QF4"]].sum(axis=1).to_numpy()
+
+
+    EBtime = df[f"EBtime"].to_numpy()
+
+
+
+    # Convert MATLAB datenum to datetime for start and end
+    # t_start = matlab_datenum_to_datetime(EBtime[0] + T[0] / (24 * 3600))
+    # t_end   = matlab_datenum_to_datetime(EBtime[-1] + T[-1] / (24 * 3600))
+    try:
+        t_start = matlab_datenum_to_datetime(EBtime[0])
+    except Exception as e:
+        print(f"Error converting start time: {e}")
+        t_start = None
+
+    try:
+        t_end = matlab_datenum_to_datetime(EBtime[-1])
+    except Exception as e:
+        print(f"Error converting end time: {e}")
+        if len(EBtime) > 1:
+            t_end = matlab_datenum_to_datetime(EBtime[-2])
+        else:
+            t_end = None
+    print (f"Start time: {t_start}, End time: {t_end}")
+    # try:
+    #     t_start = matlab_datenum_to_datetime(EBtime[0] / (24 * 3600))
+    # except Exception as e:
+    #     print(f"Error converting start time: {e}")
+    #     t_start = None  # or fallback value
+
+    # # End time: try last value, if fails, use second-to-last
+    # try:
+    #     t_end = matlab_datenum_to_datetime(EBtime[-1] / (24 * 3600))
+    # except Exception as e:
+    #     print(f"Error converting end time: {e}")
+    #     if len(EBtime) > 1:
+    #         t_end = matlab_datenum_to_datetime(EBtime[-2] / (24 * 3600))
+    #     else:
+    #         t_end = None
+
+    # Calculate efficiency
+    Events = np.sum(TF_crew < 0)
+
+    efficiency = Events / raw_events if raw_events > 0 else np.nan
+    efficiency_error = np.sqrt(efficiency * (1 - efficiency) / raw_events) if raw_events > 0 else np.nan
+
+    # Filter Q values
+
+    Qvalid = Q[(Q < 10000) & (~np.isnan(Q))]
+    Qvalid_noST = Q[(Q < strTh) & (~np.isnan(Q))]
+
+    # With streamers
+    Qmean = np.nanmean(Qvalid) if len(Qvalid) > 0 else np.nan
+    Qstd = np.nanstd(Qvalid) if len(Qvalid) > 0 else np.nan
+    err_Qmean = Qstd / np.sqrt(len(Qvalid)) if len(Qvalid) > 0 else np.nan
+
+    Qmedian = np.nanmedian(Qvalid) if len(Qvalid) > 0 else np.nan
+    err_Qmedian = np.nanmedian(np.abs(Qvalid - Qmedian)) if len(Qvalid) > 0 else np.nan
+
+    # Without streamers
+    Qmean_noST = np.nanmean(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
+    Qstd_noST = np.nanstd(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
+    err_Qmean_noST = Qstd_noST / np.sqrt(len(Qvalid_noST)) if len(Qvalid_noST) > 0 else np.nan
+
+    Qmedian_noST = np.nanmedian(Qvalid_noST) if len(Qvalid_noST) > 0 else np.nan
+    err_Qmedian_noST = np.nanmedian(np.abs(Qvalid_noST - Qmedian_noST)) if len(Qvalid_noST) > 0 else np.nan
+
+    # Streamer fraction
+    try:
+        total_valid_events = np.sum(~np.isnan(Q))
+        streamer_events = np.sum(Q > strTh)
+        ST = 100 * streamer_events / total_valid_events
+        err_ST = 100 * np.sqrt((ST/100) * (1 - ST/100) / total_valid_events)
+    except ZeroDivisionError:
+        ST = np.nan
+        err_ST = np.nan
+
+    # ===== Get mean HV in time range =====
+    mean_HV = np.nan
+    df_hv = read_hv(
+        hv_folder,
+        start_date=t_start.strftime("%Y-%m-%d"),
+        end_date=t_end.strftime("%Y-%m-%d")
+    )
+
+    # Filter by time
+    df_hv = df_hv.loc[(df_hv.index >= t_start) & (df_hv.index <= t_end)]
+
+    # Define the HV column names for this RPC
+    cols_to_sum = [f"RPCcrew_readHV_1", f"RPCcrew_readHV_2"]
+
+    mean_HV = np.nan  # default value
+
+    if not df_hv.empty:
+        # Only use the columns that actually exist in the DataFrame
+        existing_cols = [c for c in cols_to_sum if c in df_hv.columns]
+
+        if existing_cols:
+            #mean_HV = df_hv[existing_cols].sum(axis=1).mean()
+
+            mean_HV = df_hv[existing_cols].mean().mean()
+
+            
+        else:
+            print(f"⚠️ No HV columns found for RPCcre. Available columns: {df_hv.columns.tolist()}")
+    else:
+        print("⚠️ df_hv is empty for the given time range.")
+
+    print(f"Mean HV for RPCcrew: {mean_HV}")
+
+    
+    # ===== Get Temperature, Humidity and Pressure in time range =====
+    mean_Temp = np.nan
+    mean_Hum = np.nan
+    mean_Press = np.nan
+
+    df_thp = read_thp(
+        thp_folder,
+        start_date=t_start.strftime("%Y-%m-%d"),
+        end_date=t_end.strftime("%Y-%m-%d")
+    )
+
+    df_thp = df_thp.loc[(df_thp.index >= t_start) & (df_thp.index <= t_end)]
+
+    def no_outliers(row, min_val, max_val):
+        values = row.values.astype(float)
+        filtered = [v for v in values if min_val <= v <= max_val]
+        return np.mean(filtered)
+
+    if not df_thp.empty:
+        cols_T = ["T1", "T2", "T3", "T4"]
+        row_T_means = df_thp[cols_T].apply(no_outliers, axis=1, min_val=10, max_val=50)
+        mean_Temp = row_T_means.mean(skipna=True)
+
+        cols_H = ["h1", "h2"]
+        mean_H_rows = df_thp[cols_H].apply(no_outliers, axis=1, min_val=0, max_val=100)
+        mean_Hum = mean_H_rows.mean(skipna=True)
+
+        cols_P = ["p1", "p2"]
+        mean_P_rows = df_thp[cols_P].apply(no_outliers, axis=1, min_val=400, max_val=1200)
+        mean_Press = mean_P_rows.mean(skipna=True)
+
+    # Collect results
+    results = {
+        f"time_start": t_start,
+        f"time_end": t_end,
+        f'efficiency': efficiency,
+        f'efficiency_error': efficiency_error,
+        f'Qmean': Qmean,
+        f'Qmean_error': err_Qmean,
+        f'Qmedian': Qmedian,
+        f'Qmedian_error': err_Qmedian,
+        f'Qmean_noST': Qmean_noST,
+        f'Qmean_noST_error': err_Qmean_noST,
+        f'Qmedian_noST': Qmedian_noST,
+        f'Qmedian_noST_error': err_Qmedian_noST,
+        f'streamer_fraction': ST,
+        f'streamer_fraction_error': err_ST,
+        f'mean_HV': mean_HV,
+        f'mean_Temp': mean_Temp,
+        f'mean_Hum': mean_Hum,
+        f'mean_Press': mean_Press
+    }
+
+    if verbose:
+        print(f"RPC_crew results:")
+        print(f"  Time range: {t_start} -> {t_end}")
+        print(f"  Efficiency: {efficiency:.4f} ± {efficiency_error:.4f}")
+        print(f"  Qmean: {Qmean:.2f} ± {err_Qmean:.2f}")
+        print(f"  Qmean noST: {Qmean_noST:.2f} ± {err_Qmean_noST:.2f}")
+        print(f"  Qmedian: {Qmedian:.2f} ± {err_Qmedian:.2f}")
+        print(f"  Qmedian noST: {Qmedian_noST:.2f} ± {err_Qmedian_noST:.2f}")
+        print(f"  Streamer fraction: {ST:.2f}% ± {err_ST:.2f}%")
+        print(f"  Mean HV in range: {mean_HV:.2f}" if not np.isnan(mean_HV) else "  Mean HV: No data")
+
+    # Return as DataFrame
+    return pd.DataFrame([results])
+
+
+
+###################################33
 
 def strips2Dplots(X, Y, Q, binsX, binsY, STLevel, useBelowSTOnly=True):
 

@@ -51,7 +51,7 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
             reverse=True            # most recent first
         )
         if not bronze_files:
-            raise FileNotFoundError(f"No file starting with 'bronze_' found in {full_input_dir}")
+            raise FileNotFoundError(f"No file starting with 'bronze' found in {full_input_dir}")
         file_path = bronze_files[0]
     # --- Load data ---
     try:
@@ -79,7 +79,8 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
     YRange = general_config["ranges"]["YRange"]
 
     # --- Base columns and per-RPC split ---
-    base_cols = ['EBtime', 'triggerType']
+    # base_cols = ['EBtime', 'triggerType']
+    base_cols = ['EBtime']
     rpc_dfs = []
     for i in range(1, 5):
         cols = base_cols + [col for col in df.columns if f'_RPC{i}' in col]
@@ -109,16 +110,7 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
         mask_time = filter_by_time(de_rpc, rpc)
         print(f"Time filter passed: {np.sum(mask_time)} / {len(mask_time)}")
         de_rpc = de_rpc[mask_time].copy()
-
-
-
-
-        # # # --- Filter 1 ---
-        # mask1 = filter_rpc(de_rpc, rpc)
-        # print(f"Filter 1 passed: {np.sum(mask1)} / {len(mask1)}")
-        # de_rpc = de_rpc[mask1].copy()
-
-        #plots.plot_hist_Q(de_rpc, detector=rpc, verbose=False)
+        
 
         # --- Filter 3 (Qmax) ---
         de_rpc_max, mask2 = find_Qmax_strips(de_rpc, rpc)
@@ -128,69 +120,77 @@ def silver_pipe(input_dir, output_dir, triggerType,file_path=None):
         de_rpc = pd.concat([de_rpc, de_rpc_max], axis=1)
         de_rpc = de_rpc[mask2].copy()
 
+        
+
         # --- Compute Q-T and positions ---
         if(len(de_rpc) == 0):
             print(f"No events left after filtering for RPC{rpc}. Skipping calculations.")
             continue
-        de_rpc = calculate_Q_T(de_rpc, rpc)
-
+        processed_de_rpc = calculate_Q_T(de_rpc, rpc)
+        print(processed_de_rpc.head())
+        
         hv_folder = "/home/lidka/SWGO/HV"
         thp_folder = "/home/lidka/SWGO/THP"
+        step = input_dir.name 
 
-        run_parameters = calculate_parameters(de_rpc, raw_events, rpc, hv_folder, thp_folder, verbose=0)
-        final_data = calculate_XY_positions(de_rpc, rpc)
+        run_parameters = calculate_parameters(processed_de_rpc, raw_events, rpc,  step_name=step, hv_folder=hv_folder, thp_folder=thp_folder, verbose=0)
+        #print(f"HV {run_parameters['mean_HV']}")
+        #plots.plot_hist_Q(de_rpc, detector=rpc, title=f"HV {int(run_parameters['mean_HV'].item())} V", verbose=False, xrange=(0, 150), yrange=(0, 400), log=False)
+        plots.plot_Q_close_look(processed_de_rpc, rpc,  title=f"HV {int(run_parameters['mean_HV'].item())} V")
+
+        final_data = calculate_XY_positions(processed_de_rpc, rpc)
         XY_data = generate_XY_maps(final_data, rpc)
 
         # --- Save RPC-specific results ---
-        save_final_results(rpc, final_data, file_path, input_dir, output_dir)
-        save_run_parameters(rpc, run_parameters, file_path, input_dir, output_dir)
+        save_final_results(final_data, file_path, input_dir, rpc, output_dir)
+        save_run_parameters(run_parameters, file_path, input_dir, rpc,output_dir)
 
         processed_rpcs.append(final_data)
-        rpc_dfs[rpc - 1] = de_rpc 
+        rpc_dfs[rpc - 1] = processed_de_rpc 
 
     # --- Combine all RPCs if needed ---
     combined_data = pd.concat(processed_rpcs, axis=0, ignore_index=True)
     return combined_data
 
 
-from pathlib import Path
-import os
-import glob
-base_folder = Path("/home/lidka/SWGO/SKAN4") # change this to your main folder path
-#input_dir = "/home/lidka/SWGO/SKAN3/STEP1"
-input_dir = base_folder / "STEP9"
+# from pathlib import Path
+# import os
+# import glob
+# base_folder = Path("/home/lidka/SWGO/SKAN3") # change this to your main folder path
+# #input_dir = "/home/lidka/SWGO/SKAN3/STEP1"
+# input_dir = base_folder / "STEP8"
 
-# Find all .mat files in the folder, sorted by name
-input_files = sorted(glob.glob(os.path.join(input_dir, "*.mat")))
-rpc = 1
-#first_file_name = input_files[0]
-# triggerType = "TriggerScint"
-triggerType = "TriggerUP"
-#triggerType = "TriggerDOWN"
+# # Find all .mat files in the folder, sorted by name
+# input_files = sorted(glob.glob(os.path.join(input_dir, "*.mat")))
+# rpc = 1
+# #first_file_name = input_files[0]
+# # triggerType = "TriggerScint"
+# #triggerType = "TriggerUP"
+# triggerType = "TriggerDOWN"
 
-for file_path in input_files:
-    bronze_data = bronze_pipe(file_path, triggerType)
-    bronze_file_path = save_pipeline(bronze_data, file_path, input_dir, output_dir=f"bronze{triggerType}", max_rows=10000)
-    done_dir = os.path.join(input_dir, "done")
-    os.makedirs(done_dir, exist_ok=True)  # create folder if it doesn't exist
+# for file_path in input_files:
+#     bronze_data = bronze_pipe(file_path, triggerType)
+#     bronze_file_path = save_pipeline(bronze_data, file_path, input_dir, output_dir=f"bronze{triggerType}", max_rows=10000)
+#     done_dir = os.path.join(input_dir, "done")
+#     os.makedirs(done_dir, exist_ok=True)  # create folder if it doesn't exist
 
-    # Construct destination path
-    dest_path = os.path.join(done_dir, os.path.basename(file_path))
+#     # Construct destination path
+#     dest_path = os.path.join(done_dir, os.path.basename(file_path))
     
-    # Move the file
-    shutil.move(file_path, dest_path)
+#     # Move the file
+#     shutil.move(file_path, dest_path)
     
-    print(f"Moved {file_path} → {dest_path}")
+#     print(f"Moved {file_path} → {dest_path}")
 
-#     # plots.plot_hist_Q(bronze_data, detector=1, verbose=False)
-#     # plots.plot_hist_Q(bronze_data, detector=2, verbose=False)
-#     # plots.plot_hist_Q(bronze_data, detector=3, verbose=False)
-#     #plots.plot_hist_Q(bronze_data, detector=4, verbose=False)
+# # #     # plots.plot_hist_Q(bronze_data, detector=1, verbose=False)
+# # #     # plots.plot_hist_Q(bronze_data, detector=2, verbose=False)
+# # #     # plots.plot_hist_Q(bronze_data, detector=3, verbose=False)
+# # #     #plots.plot_hist_Q(bronze_data, detector=4, verbose=False)
 
 
-#bronze_file_path = "/home/lidka/SWGO/SKAN1/STEP1/bronzeTriggerDOWN/bronze_25307151150.txt"
-# # #bronze_readback = pd.read_csv(bronze_file_path, sep='\t')
-silver_data = silver_pipe( input_dir, output_dir=f"silver{triggerType}", triggerType=triggerType)
+# # #bronze_file_path = "/home/lidka/SWGO/SKAN1/STEP1/bronzeTriggerDOWN/bronze_25307151150.txt"
+# # # # #bronze_readback = pd.read_csv(bronze_file_path, sep='\t')
+# silver_data = silver_pipe( input_dir, output_dir=f"silver{triggerType}", triggerType=triggerType)
 # #readXY(folder=f"{input_dir}/silver{triggerType}")
 
 # #df = load_all_steps(base_folder, triggerType)
@@ -200,26 +200,26 @@ silver_data = silver_pipe( input_dir, output_dir=f"silver{triggerType}", trigger
 # ###################################################
 
 
-base_folder = "/home/lidka/SWGO/SKAN4"  # change this to your main folder path
-df = load_all_steps(base_folder, triggerType)
-# #####################################################
+# base_folder = "/home/lidka/SWGO/SKAN4"  # change this to your main folder path
+# df = load_all_steps(base_folder, triggerType)
+# # #####################################################
 
-df1 = load_all_steps("/home/lidka/SWGO/SKAN3", "TriggerDOWN")
-df2= load_all_steps("/home/lidka/SWGO/SKAN2", "TriggerUP")
-df3= load_all_steps("/home/lidka/SWGO/SKAN4", "TriggerUP")
-###df_combined = pd.concat([df1, df2, df3], ignore_index=True)
+# df1 = load_all_steps("/home/lidka/SWGO/SKAN3", "TriggerDOWN")
+# df2= load_all_steps("/home/lidka/SWGO/SKAN2", "TriggerUP")
+# df3= load_all_steps("/home/lidka/SWGO/SKAN4", "TriggerUP")
+# ###df_combined = pd.concat([df1, df2, df3], ignore_index=True)
 
-###Select specific RPCs from each dataset
-df1_sel = df1[df1["rpc"].isin([1, 2])]
-df2_sel = df2[df2["rpc"].isin([4])]
-df3_sel = df3[df3["rpc"].isin([3])]
+# ###Select specific RPCs from each dataset
+# df1_sel = df1[df1["rpc"].isin([1, 2])]
+# df2_sel = df2[df2["rpc"].isin([4])]
+# df3_sel = df3[df3["rpc"].isin([3])]
 
-# # # Combine them
-df_combined = pd.concat([df1_sel, df2_sel, df3_sel], ignore_index=True)
+# # # # Combine them
+# df_combined = pd.concat([df1_sel, df2_sel, df3_sel], ignore_index=True)
 
-# Plot using the combined filtered data
-plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[ 1, 2, 3, 4])
-# plots.plot_streamer_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
+# # Plot using the combined filtered data
+# plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[ 1, 2, 3, 4])
+# # plots.plot_streamer_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
 # plots.plot_Qmean_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
 # plots.plot_Qmedian_vs_reduced_field(df_combined, rpc_list=[1, 2, 3, 4])
 
@@ -240,4 +240,38 @@ plots.plot_efficiency_vs_reduced_field(df_combined, rpc_list=[ 1, 2, 3, 4])
 #print(f"Read {len(bronze_readback)} rows from {bronze_file_path}")
 
 
+###########################################################
+######STEP ITTERATION
 
+from pathlib import Path
+import glob
+
+base_folder = Path("/home/lidka/SWGO/SKAN2")
+
+# Find all folders starting with "STEP" (e.g., STEP1, STEP2, STEP1a, STEP2a...)
+step_folders = sorted([f for f in base_folder.iterdir() if f.is_dir() and f.name.startswith("STEP")])
+
+triggerType = "TriggerUP"
+#triggerType = "TriggerDOWN"
+rpc = 1
+
+for step_dir in step_folders:
+    print(f"\nProcessing folder: {step_dir.name}")
+    input_files = sorted(glob.glob(os.path.join(step_dir, "*.mat")))
+    for file_path in input_files:
+        bronze_data = bronze_pipe(file_path, triggerType)
+        bronze_file_path = save_pipeline(bronze_data, file_path, step_dir, output_dir=f"bronze{triggerType}", max_rows=10000)
+        done_dir = os.path.join(step_dir, "done")
+        os.makedirs(done_dir, exist_ok=True)  # create folder if it doesn't exist
+
+        # Construct destination path
+        dest_path = os.path.join(done_dir, os.path.basename(file_path))
+        
+        # Move the file
+        shutil.move(file_path, dest_path)
+        
+        print(f"Moved {file_path} → {dest_path}")
+    silver_data = silver_pipe( step_dir, output_dir=f"silver{triggerType}", triggerType=triggerType)
+        # Your processing code goes here
+        # Example:
+        # data = scipy.io.loadmat(matFile)

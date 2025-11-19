@@ -37,7 +37,7 @@ import os
 import pandas as pd
 import numpy as np
 
-def save_run_parameters(rpc, run_parameters, file_path, input_dir,  output_dir="results"):
+def save_run_parameters(run_parameters, file_path, input_dir, rpc=None, output_dir="results"):
     """
     Save run parameters to a CSV file. Each call creates a new file.
     """
@@ -61,7 +61,7 @@ def save_run_parameters(rpc, run_parameters, file_path, input_dir,  output_dir="
     print(f"Saved run parameters to {run_param_file}")
 
 
-def save_final_results(rpc, final_data, file_path, input_dir, output_dir="results"):
+def save_final_results(final_data, file_path, input_dir, rpc=None, output_dir="results"):
     """
     Save final results to a TXT file (tab-delimited). Each call creates a new file.
     """
@@ -71,8 +71,11 @@ def save_final_results(rpc, final_data, file_path, input_dir, output_dir="result
     
     # Extract timestamp from file name
     timestamp = os.path.splitext(os.path.basename(file_path))[0][7:]
-    final_data_file = os.path.join(full_output_dir, f"final_data_RPC{rpc}_{timestamp}.txt")
-    
+    if(rpc!=None):
+        final_data_file = os.path.join(full_output_dir, f"final_data_RPC{rpc}_{timestamp}.txt")
+    else:
+        final_data_file = os.path.join(full_output_dir, f"final_data_{timestamp}.txt")
+
     # Convert to array if not a DataFrame
     if isinstance(final_data, pd.DataFrame):
         final_data.to_csv(final_data_file, sep='\t', index=False)

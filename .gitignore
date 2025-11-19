@@ -21,6 +21,7 @@ venv/
 *.tmp
 *.mat
 *.txt
+*.csv
 
 LL/
 hv/

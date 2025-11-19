@@ -5,7 +5,45 @@ from load_lookUpTable import load_general_config
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_hist_Q(df, detector, verbose=False):
+import matplotlib.pyplot as plt
+
+def plot_Q_close_look(df, rpc, title):
+    Q = df[f'Q_RPC{rpc}']  # change if your Q column has another name
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+
+    # --- Row 1 (linear y-scale) ---
+    # 1. Q 0–300
+    axes[0, 0].hist(Q, bins=100, range=(0, 300))
+    axes[0, 0].set_title(f'RPC {rpc} full')
+    axes[0, 0].set_xlabel('Q')
+    axes[0, 0].set_ylabel('Counts')
+
+    # 2. Q 0–100
+    axes[0, 1].hist(Q, bins=100, range=(0, 100))
+    axes[0, 1].set_title(f'RPC {rpc} zoom')
+    axes[0, 1].set_xlabel('Q')
+    axes[0, 1].set_ylabel('Counts')
+
+    # --- Row 2 (log y-scale) ---
+    # 3. Q 0–300 logscale
+    axes[1, 0].hist(Q, bins=100, range=(0, 300), log=True)
+    axes[1, 0].set_title(f'RPC {rpc}full log ')
+    axes[1, 0].set_xlabel('Q')
+    axes[1, 0].set_ylabel('Counts (log)')
+
+    # 4. Q 0–50 logscale
+    axes[1, 1].hist(Q, bins=100, range=(0, 100), log=True)
+    axes[1, 1].set_title(f'RPC {rpc} zoom log')
+    axes[1, 1].set_xlabel('Q')
+    axes[1, 1].set_ylabel('Counts (log)')
+
+    fig.suptitle(f"Charge Distribution — RPC {rpc}, {title}", fontsize=18)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_hist_Q(df, detector, verbose=False, title = "Charge Distribution",  xrange=None, yrange = None, log = False):
 
     general_config = load_general_config("lookUpTable_general.txt")
     n_of_rpcs = general_config["general"]["n_of_rpcs"]
@@ -15,6 +53,9 @@ def plot_hist_Q(df, detector, verbose=False):
             # RPC mode
             qf_key = f"QF_RPC{detector}"
             qb_key = f"QB_RPC{detector}"
+
+            xmin, xmax = xrange  # your desired range
+            bins = np.linspace(xmin, xmax, 51)
             
             if qf_key in df.columns and qb_key in df.columns:
                 qf_data = np.array(df[qf_key].tolist())
@@ -22,20 +63,38 @@ def plot_hist_Q(df, detector, verbose=False):
                 
                 fig, axes = plt.subplots(2, 4, figsize=(16, 8))
                 for i in range(4):
-                    axes[0, i].hist(qf_data[:, i], bins=50, alpha=0.7, color='blue')
+                    #axes[0, i].hist(qf_data[:, i], bins=50, alpha=0.7, color='blue')
+                    axes[0, i].hist(qf_data[:, i], bins=bins, alpha=0.7, color='blue')
                     axes[0, i].set_title(f"QF RPC{detector} Strip {i+1}")
                     axes[0, i].set_xlabel("Charge")
                     axes[0, i].set_ylabel("Count")
-                    axes[0, i].set_yscale('log') 
+                    if log:
+                        axes[0, i].set_yscale('log')
                     axes[0, i].grid(True)
 
-                    axes[1, i].hist(qb_data[:, i], bins=50, alpha=0.7, color='green')
+                    if xrange:
+                        axes[0, i].set_xlim(xrange)
+                    if yrange:
+                        axes[0, i].set_ylim(yrange)
+
+
+                    #axes[1, i].hist(qb_data[:, i], bins=50, alpha=0.7, color='green')
+                    axes[1, i].hist(qb_data[:, i], bins=bins, alpha=0.7, color='green')
                     axes[1, i].set_title(f"QB RPC{detector} Strip {i+1}")
                     axes[1, i].set_xlabel("Charge")
                     axes[1, i].set_ylabel("Count")
-                    axes[1, i].set_yscale('log') 
+                    if log:
+                        axes[1, i].set_yscale('log')
                     axes[1, i].grid(True)
-                
+
+                    if xrange:
+                        axes[1, i].set_xlim(xrange)
+                    if yrange:
+                        axes[1, i].set_ylim(yrange)
+
+
+                fig.suptitle(f"Charge Distribution — RPC {detector}, {title}", fontsize=18)
+
                 plt.tight_layout()
                 plt.show()
             else:
@@ -53,7 +112,7 @@ def plot_hist_Q(df, detector, verbose=False):
                     ax.set_xlabel("Charge")
                     ax.set_ylabel("Count")
                     ax.grid(True)
-                
+                plt.title(title)
                 plt.tight_layout()
                 plt.show()
             else:
@@ -62,7 +121,8 @@ def plot_hist_Q(df, detector, verbose=False):
         elif detector == "crew":
             key = "QF_crew"
             if key in df.columns:
-                crew_data = np.array(df[key].tolist())
+                #crew_data = np.array(df[key].tolist())
+                crew_data = np.vstack(df[key].to_numpy())
                 fig, axes = plt.subplots(1, 4, figsize=(16, 4))
                 for i in range(4):
                     axes[i].hist(crew_data[:, i], bins=50, alpha=0.7, color='purple')
@@ -70,7 +130,7 @@ def plot_hist_Q(df, detector, verbose=False):
                     axes[i].set_xlabel("Charge")
                     axes[i].set_ylabel("Count")
                     axes[i].grid(True)
-                
+                plt.title(title)
                 plt.tight_layout()
                 plt.show()
             else:
@@ -404,6 +464,7 @@ def plot_pressure_vs_time(df, title="Pressure vs Time"):
 import matplotlib.pyplot as plt
 
 def plot_streamer_fraction_vs_voltage(df, rpc_list=None, title="Streamers vs Voltage"):
+   
     """
     Plot streamer fraction vs voltage for selected RPCs.
 
@@ -612,7 +673,6 @@ def reduced_electric_field(V, d, P, T):
 import matplotlib.pyplot as plt
 
 def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N"):
-    d=1  # gap distance in mm or cm, adjust as needed
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -626,9 +686,10 @@ def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N
 
     # Compute E/N and plot for each selected RPC
     for rpc in sorted(df_filtered["rpc"].unique()):
-        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+        d=1   # gap distance in mm or cm, adjust as needed
+        if(rpc=="3" or rpc ==3): 
             d=1.5
-        if(rpc==4):
+        if(rpc=="4" or rpc==4):
             d=2
         subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
@@ -656,7 +717,6 @@ def plot_efficiency_vs_reduced_field(df, rpc_list=None, title="Efficiency vs E/N
 
 
 def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
-    d=1  # gap distance in mm or cm, adjust as needed
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -671,9 +731,10 @@ def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
 
     # Compute E/N and plot for each selected RPC
     for rpc in sorted(df_filtered["rpc"].unique()):
-        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+        d=1   # gap distance in mm or cm, adjust as needed
+        if(rpc=="3" or rpc ==3):  
             d=1.5
-        if(rpc==4):
+        if(rpc=="4" or rpc==4):
             d=2
         subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
@@ -700,7 +761,7 @@ def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
 
 
 def plot_Qmedian_vs_reduced_field(df, rpc_list=None, title="Qmedian vs E/N"):
-    d=1  # gap distance in mm or cm, adjust as needed
+
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -715,9 +776,10 @@ def plot_Qmedian_vs_reduced_field(df, rpc_list=None, title="Qmedian vs E/N"):
 
     # Compute E/N and plot for each selected RPC
     for rpc in sorted(df_filtered["rpc"].unique()):
-        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+        d=1   # gap distance in mm or cm, adjust as needed
+        if(rpc=="3" or rpc ==3): 
             d=1.5
-        if(rpc==4):
+        if(rpc=="4" or rpc==4):
             d=2
         subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
@@ -743,7 +805,6 @@ def plot_Qmedian_vs_reduced_field(df, rpc_list=None, title="Qmedian vs E/N"):
     plt.show()
 
 def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
-    d=1  # gap distance in mm or cm, adjust as needed
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -758,9 +819,10 @@ def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
 
     # Compute E/N and plot for each selected RPC
     for rpc in sorted(df_filtered["rpc"].unique()):
-        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
+        d=1   # gap distance in mm or cm, adjust as needed
+        if(rpc=="3" or rpc ==3): 
             d=1.5
-        if(rpc==4):
+        if(rpc=="4" or rpc==4):
             d=2
         subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
@@ -787,7 +849,7 @@ def plot_streamer_vs_reduced_field(df, rpc_list=None, title="Streamer vs E/N"):
 
 
 def plot_Qmean_vs_reduced_field(df, rpc_list=None, title="Qmean vs E/N"):
-    d=1  # gap distance in mm or cm, adjust as needed
+   
     # If single RPC given, convert to list
     if isinstance(rpc_list, (int, str)):
         rpc_list = [rpc_list]
@@ -802,10 +864,12 @@ def plot_Qmean_vs_reduced_field(df, rpc_list=None, title="Qmean vs E/N"):
 
     # Compute E/N and plot for each selected RPC
     for rpc in sorted(df_filtered["rpc"].unique()):
-        if(rpc==3):  # TEMPORARY FIX FOR RPC3 WITH NO THP DATA
-            d=1.32
-        if(rpc==4):
+        d=1   # gap distance in mm or cm, adjust as needed
+        if(rpc=="3" or rpc ==3): 
+            d=1.5
+        if(rpc=="4" or rpc==4):
             d=2
+        
         subset = df_filtered[df_filtered["rpc"] == rpc].copy()
         subset["E_N"] = reduced_electric_field(
             subset["mean_HV"],

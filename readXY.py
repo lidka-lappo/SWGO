@@ -131,7 +131,7 @@ def load_all_steps(base_folder, triggerType):
     }
 
     all_data = []
-    pattern = re.compile(r"run_parameters_RPC(\d+)_.*\.csv")
+    pattern = re.compile(r"run_parameters_RPC(\d+|crew)_.*\.csv")
 
     for step_folder in sorted(os.listdir(base_folder)):
         step_path = os.path.join(base_folder, step_folder)
@@ -154,7 +154,13 @@ def load_all_steps(base_folder, triggerType):
                 print(f"⚠️ Skipped unexpected file name: {file}")
                 continue
 
-            rpc = int(match.group(1))
+            rpc_value = match.group(1)
+
+            # Only process files where RPC is a number
+            if rpc_value.isdigit():
+                rpc = int(rpc_value)
+            else:
+                rpc = "crew"
             file_path = os.path.join(silver_path, file)
 
             try:
