@@ -22,6 +22,12 @@ venv/
 *.mat
 *.txt
 *.csv
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+*.dat
 
 LL/
 hv/
